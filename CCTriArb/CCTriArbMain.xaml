@@ -1,0 +1,42 @@
+﻿<Window x:Name="frmTriArbMain" x:Class="CCTriArb.CCTriArbMain"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:CCTriArb"
+        mc:Ignorable="d"
+        Title="DonkeyKong" Height="807.894" Width="1349.8" Loaded="frmTriArbMain_Loaded">
+    <Grid Margin="2,2,0,2.4" HorizontalAlignment="Left" Width="1338" RenderTransformOrigin="0.5,0.5">
+        <DataGrid AutoGenerateColumns="False" Name="dgStrategies" Margin="17,29,298,578" CanUserResizeColumns="True" CanUserAddRows="False" ItemsSource="{Binding}">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Pri Exchange" Width="90" Binding="{Binding Exchange,Mode=OneWay}" />
+                <DataGridTextColumn Header="Leg 1" Width="90" Binding="{Binding Leg1,Mode=OneWay}" />
+                <DataGridTextColumn Header="Leg 1 Bid" Width="60" Binding="{Binding Leg1Bid,StringFormat=N3, Mode=OneWay}" />
+                <DataGridTextColumn Header="Leg 1 Ask" Width="60" Binding="{Binding Leg1Ask,StringFormat=N3,Mode=OneWay}" />
+                <DataGridTextColumn Header="Leg 2" Width="90" Binding="{Binding Leg2,Mode=OneWay}" />
+                <DataGridTextColumn Header="Leg 2 Bid" Width="60" Binding="{Binding Leg2Bid,StringFormat=N3,Mode=OneWay}" />
+                <DataGridTextColumn Header="Leg 2 Ask" Width="60" Binding="{Binding Leg2Ask,StringFormat=N3,Mode=OneWay}" />
+                <DataGridTextColumn Header="Leg 3" Width="90" Binding="{Binding Leg3,Mode=OneWay}" />
+                <DataGridTextColumn Header="Leg 3 Bid" Width="60" Binding="{Binding Leg3Bid,StringFormat=N3,Mode=OneWay}" />
+                <DataGridTextColumn Header="Leg 3 Ask" Width="60" Binding="{Binding Leg3Ask,StringFormat=N3,Mode=OneWay}" />
+                <DataGridTextColumn Header="Profit AAA" Width="70" Binding="{Binding ProfitAAA,StringFormat=N4,Mode=OneWay}" />
+                <DataGridTextColumn Header="Profit PAA" Width="70" Binding="{Binding ProfitPAA,StringFormat=N4,Mode=OneWay}" />
+                <DataGridTextColumn Header="Profit PPA" Width="70" Binding="{Binding ProfitPPA,StringFormat=N4,Mode=OneWay}" />
+                <DataGridTextColumn Header="Profit PPP" Width="70" Binding="{Binding ProfitPPP,StringFormat=N4,Mode=OneWay}" />
+            </DataGrid.Columns>
+        </DataGrid>
+        <Label Content="Strategies" HorizontalAlignment="Left" Margin="8,4,0,0" VerticalAlignment="Top"/>
+        <DataGrid HorizontalAlignment="Left" Height="167" Margin="20,245,0,0" VerticalAlignment="Top" Width="1020"/>
+        <Label Content="Orders" HorizontalAlignment="Left" Margin="8,219,0,0" VerticalAlignment="Top"/>
+        <ComboBox HorizontalAlignment="Left" Margin="1228,35,0,0" VerticalAlignment="Top" Width="75" Height="18"/>
+        <TextBox x:Name="txtLog" HorizontalAlignment="Left" Height="265" Margin="20,456,0,0" TextWrapping="Wrap" Text="TextBox" VerticalAlignment="Top" Width="1090"/>
+        <Label Content="Log" HorizontalAlignment="Left" Margin="10,426,0,0" VerticalAlignment="Top"/>
+        <Button x:Name="btnClose" Content="Exit" HorizontalAlignment="Left" Margin="1140,706,0,0" VerticalAlignment="Top" Width="75" Click="btnClose_Click" RenderTransformOrigin="0.6,0.63"/>
+        <Label Content="Server" HorizontalAlignment="Left" Margin="1162,35,0,0" VerticalAlignment="Top"/>
+        <Button x:Name="btnTradeNextActive" Content="Trade Next Active" HorizontalAlignment="Left" Margin="1195,66,0,0" VerticalAlignment="Top" Width="110" Height="59"/>
+        <Button x:Name="btnTradeNextPassive" Content="Trade Next Passive" HorizontalAlignment="Left" Margin="1065,66,0,0" VerticalAlignment="Top" Width="115" Height="59" Click="btnTradeNextPassive_Click"/>
+        <Button x:Name="btnTradeCyclePAA" Content="Trade Cycle PAA" HorizontalAlignment="Left" Margin="1065,137,0,0" VerticalAlignment="Top" Width="115" Height="59"/>
+        <Button x:Name="btnTradeCyclePPA" Content="Trade Cycle PPA" HorizontalAlignment="Left" Margin="1195,137,0,0" VerticalAlignment="Top" Width="115" Height="59"/>
+
+    </Grid>
+</Window>
