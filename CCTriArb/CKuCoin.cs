@@ -76,18 +76,26 @@ namespace CCTriArb
             }
         }
 
-        public override async void trade(OrderSide? side, CProduct product, decimal size, decimal? price)
+        public override async void trade(ServerType serverType, OrderSide? side, CProduct product, decimal size, decimal? price)
         {
             try
             {
-                //Production
-                var baseAddress = new Uri("https://api.kucoin.com/");
+                Uri baseAddress;
+                switch (serverType)
+                {
+                    case ServerType.Debugging:
+                        baseAddress = new Uri("https://private-f6a2b2-kucoinapidocs.apiary-proxy.com/");
+                        break;
 
-                // Mock server
-                //var baseAddress = new Uri("https://private-f6a2b2-kucoinapidocs.apiary-mock.com/");
+                    case ServerType.Mock:
+                        baseAddress = new Uri("https://private-f6a2b2-kucoinapidocs.apiary-mock.com/");
+                        break;
 
-                // debugging
-                //var baseAddress = new Uri("https://private-f6a2b2-kucoinapidocs.apiary-proxy.com/");
+                    default:
+                        baseAddress = new Uri("https://api.kucoin.com/");
+                        break;
+                }
+
                 String API_KEY = Properties.Settings.Default.KUCOIN_API_KEY;
                 String API_SECRET = Properties.Settings.Default.KUCOIN_API_SECRET;
                 String endpoint = "/v1/KCS-BTC/order";  // API endpoint

@@ -54,7 +54,8 @@ namespace CCTriArb
             if (selectedRow > -1)
             {
                 CTriArb triarb = server.colStrategies[selectedRow];
-                triarb.tradeNext(false);
+                Enum.TryParse(((ComboBoxItem)cboServer.SelectedItem).Content.ToString(), out ServerType serverType);
+                triarb.tradeNext(serverType, false);
             }
         }
     }

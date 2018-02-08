@@ -90,11 +90,11 @@ namespace CCTriArb
             this.OnPropertyChanged("ProfitPPP");
         }
 
-        public void tradeNext(Boolean active)
+        public void tradeNext(ServerType serverType, Boolean active)
         {
             OrderSide side = dctLegs[currentLeg].Item1;
             CProduct product = dctLegs[currentLeg].Item2;
-            dctLegs[currentLeg].Item2.Exchange.trade(side, product, 1, side == OrderSide.Buy ? product.Bid : product.Ask);
+            dctLegs[currentLeg].Item2.Exchange.trade(serverType, side, product, 1, side == OrderSide.Buy ? product.Bid : product.Ask);
             currentLeg++;
         }
 

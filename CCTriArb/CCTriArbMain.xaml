@@ -28,11 +28,15 @@
         <Label Content="Strategies" HorizontalAlignment="Left" Margin="8,4,0,0" VerticalAlignment="Top"/>
         <DataGrid HorizontalAlignment="Left" Height="167" Margin="20,245,0,0" VerticalAlignment="Top" Width="1020"/>
         <Label Content="Orders" HorizontalAlignment="Left" Margin="8,219,0,0" VerticalAlignment="Top"/>
-        <ComboBox HorizontalAlignment="Left" Margin="1228,35,0,0" VerticalAlignment="Top" Width="75" Height="18"/>
+        <ComboBox x:Name="cboServer" HorizontalAlignment="Left" Margin="1195,35,0,0" VerticalAlignment="Top" Width="108" Height="18" SelectedIndex="0">
+            <ComboBoxItem Content="Production"/>
+            <ComboBoxItem Content="Mock"/>
+            <ComboBoxItem Content="Debugging"/>
+        </ComboBox>
         <TextBox x:Name="txtLog" HorizontalAlignment="Left" Height="265" Margin="20,456,0,0" TextWrapping="Wrap" Text="TextBox" VerticalAlignment="Top" Width="1090"/>
         <Label Content="Log" HorizontalAlignment="Left" Margin="10,426,0,0" VerticalAlignment="Top"/>
         <Button x:Name="btnClose" Content="Exit" HorizontalAlignment="Left" Margin="1140,706,0,0" VerticalAlignment="Top" Width="75" Click="btnClose_Click" RenderTransformOrigin="0.6,0.63"/>
-        <Label Content="Server" HorizontalAlignment="Left" Margin="1162,35,0,0" VerticalAlignment="Top"/>
+        <Label Content="Server" HorizontalAlignment="Left" Margin="1068,29,0,0" VerticalAlignment="Top"/>
         <Button x:Name="btnTradeNextActive" Content="Trade Next Active" HorizontalAlignment="Left" Margin="1195,66,0,0" VerticalAlignment="Top" Width="110" Height="59"/>
         <Button x:Name="btnTradeNextPassive" Content="Trade Next Passive" HorizontalAlignment="Left" Margin="1065,66,0,0" VerticalAlignment="Top" Width="115" Height="59" Click="btnTradeNextPassive_Click"/>
         <Button x:Name="btnTradeCyclePAA" Content="Trade Cycle PAA" HorizontalAlignment="Left" Margin="1065,137,0,0" VerticalAlignment="Top" Width="115" Height="59"/>
