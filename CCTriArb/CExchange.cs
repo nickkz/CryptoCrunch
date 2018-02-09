@@ -43,7 +43,7 @@ namespace CCTriArb
         public abstract void pollTicks(object source, ElapsedEventArgs e);
         public abstract void pollOrders(object source, ElapsedEventArgs e);
         public abstract void getAccounts();
-        public abstract void trade(ServerType serverType, OrderSide? side, CProduct product, Decimal size, Decimal? price);
+        public abstract void trade(ServerType serverType, OrderSide? side, CProduct product, Double size, Decimal? price);
         public abstract void cancel(String orderID);
         public abstract void cancelAll();
 

@@ -94,8 +94,9 @@ namespace CCTriArb
         {
             OrderSide side = dctLegs[currentLeg].Item1;
             CProduct product = dctLegs[currentLeg].Item2;
-            dctLegs[currentLeg].Item2.Exchange.trade(serverType, side, product, 1, side == OrderSide.Buy ? product.Bid : product.Ask);
-            currentLeg++;
+            dctLegs[currentLeg].Item2.Exchange.trade(serverType, side, product, 0.00001, side == OrderSide.Buy ? product.Bid : product.Ask);
+            if (++currentLeg > dctLegs.Count)
+                currentLeg = 1;
         }
 
     }
