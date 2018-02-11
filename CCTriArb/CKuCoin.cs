@@ -36,9 +36,86 @@ namespace CCTriArb
             //throw new NotImplementedException();
         }
 
-        public override void pollOrders(object source, ElapsedEventArgs e)
+        public override async void pollOrders(object source, ElapsedEventArgs e)
         {
-            //throw new NotImplementedException();
+            try
+            {
+                ServerType serverType = ServerType.Debugging;
+                CProduct product = colProducts[0];
+                Uri baseAddress;
+                switch (serverType)
+                {
+                    case ServerType.Debugging:
+                        baseAddress = new Uri("https://private-f6a2b2-kucoinapidocs.apiary-proxy.com");
+                        break;
+
+                    case ServerType.Mock:
+                        baseAddress = new Uri("https://private-f6a2b2-kucoinapidocs.apiary-mock.com");
+                        break;
+
+                    default:
+                        baseAddress = new Uri("https://api.kucoin.com");
+                        break;
+                }
+
+                String API_KEY = Properties.Settings.Default.KUCOIN_API_KEY;
+                String API_SECRET = Properties.Settings.Default.KUCOIN_API_SECRET;
+                String endpoint = "/v1/order/active";  // API endpoint
+
+                HttpClient httpClient = new HttpClient();
+
+                Dictionary<string, string> parameters = new Dictionary<string, string> {
+                    { "symbol", product.Symbol }
+                };
+                HttpContent queryString = new FormUrlEncodedContent(parameters);
+                String strQuery = "";
+                foreach (String param in parameters.Keys)
+                {
+                    if (strQuery.Length > 0)
+                        strQuery += "&";
+                    strQuery += (param + "=" + parameters[param]);
+                }
+
+                //splice string for signing
+                String nonce = CHelper.ConvertToUnixTimestamp().ToString();
+                String ApiForSign = endpoint + "/" + nonce + "/" + strQuery;
+                String Base64ForSign = CHelper.Base64Encode(ApiForSign);
+
+                UTF8Encoding encoding = new System.Text.UTF8Encoding();
+                byte[] keyByte = encoding.GetBytes(API_SECRET);
+                byte[] messageBytes = encoding.GetBytes(Base64ForSign);
+                HMACSHA256 hmacsha256 = new HMACSHA256(keyByte);
+                byte[] hashmessage = hmacsha256.ComputeHash(messageBytes);
+
+                byte[] ba = hashmessage;
+                StringBuilder hex = new StringBuilder(ba.Length * 2);
+                foreach (byte b in ba)
+                    hex.AppendFormat("{0:x2}", b);
+
+                String signatureResult = hex.ToString();
+
+                // Create a client
+                httpClient = new HttpClient();
+
+                // Add a new Request Message
+                HttpRequestMessage requestMessage = new HttpRequestMessage(HttpMethod.Get, baseAddress + endpoint + "?" + strQuery);
+
+                // Add our custom headers
+                requestMessage.Headers.Add("KC-API-SIGNATURE", signatureResult);
+                requestMessage.Headers.Add("KC-API-KEY", API_KEY);
+                requestMessage.Headers.Add("KC-API-NONCE", nonce);
+
+                // Send the request to the server
+                HttpResponseMessage response = await httpClient.SendAsync(requestMessage);
+
+                // Just as an example I'm turning the response into a string here
+                string responseAsString = await response.Content.ReadAsStringAsync();
+                Server.AddLog(responseAsString);
+            }
+            catch (Exception ex)
+            {
+                Server.AddLog(ex.Message);
+            }
         }
 
         public override void pollTicks(object source, ElapsedEventArgs e)
@@ -67,8 +144,6 @@ namespace CCTriArb
                     {
                         strategy.updateGUI();
                     }
-
-
                 }
                 catch (Exception ex)
                 {

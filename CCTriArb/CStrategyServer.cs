@@ -110,8 +110,5 @@ namespace CCTriArb
                 exchange.pollOrders(source, e);
             }
         }
-
-
-
     }
 }
