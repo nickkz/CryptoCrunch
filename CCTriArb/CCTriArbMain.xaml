@@ -26,21 +26,35 @@
             </DataGrid.Columns>
         </DataGrid>
         <Label Content="Strategies" HorizontalAlignment="Left" Margin="8,4,0,0" VerticalAlignment="Top"/>
-        <DataGrid HorizontalAlignment="Left" Height="167" Margin="20,245,0,0" VerticalAlignment="Top" Width="1020"/>
+        <DataGrid AutoGenerateColumns="False" HorizontalAlignment="Left" Name="dgOrders" Height="167" Margin="20,245,0,0" VerticalAlignment="Top" Width="1020" CanUserResizeColumns="True" CanUserAddRows="False" ItemsSource="{Binding}">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="OrderID" Width="60" Binding="{Binding OrderID,StringFormat=N3, Mode=OneWay}" />
+                <DataGridTextColumn Header="Exchange" Width="90" Binding="{Binding Exchange,Mode=OneWay}" />
+                <DataGridTextColumn Header="Strategy" Width="90" Binding="{Binding Strategy,Mode=OneWay}" />
+                <DataGridTextColumn Header="Product" Width="90" Binding="{Binding Product,Mode=OneWay}" />
+                <DataGridTextColumn Header="Size" Width="90" Binding="{Binding Size,Mode=OneWay}" />
+                <DataGridTextColumn Header="Executed" Width="90" Binding="{Binding Executed,Mode=OneWay}" />
+                <DataGridTextColumn Header="Status" Width="90" Binding="{Binding Status,Mode=OneWay}" />
+            </DataGrid.Columns>
+        </DataGrid>
         <Label Content="Orders" HorizontalAlignment="Left" Margin="8,219,0,0" VerticalAlignment="Top"/>
-        <ComboBox x:Name="cboServer" HorizontalAlignment="Left" Margin="1195,35,0,0" VerticalAlignment="Top" Width="108" Height="18" SelectedIndex="0">
-            <ComboBoxItem Content="Production"/>
-            <ComboBoxItem Content="Mock"/>
+        <ComboBox x:Name="cboServer" HorizontalAlignment="Left" Margin="1195,33,0,0" VerticalAlignment="Top" Width="108" Height="22" SelectedIndex="0" SelectionChanged="cboServer_SelectionChanged">
             <ComboBoxItem Content="Debugging"/>
+            <ComboBoxItem Content="Mock"/>
+            <ComboBoxItem Content="Production"/>
         </ComboBox>
         <TextBox x:Name="txtLog" HorizontalAlignment="Left" Height="265" Margin="20,456,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="1010"/>
         <Label Content="Log" HorizontalAlignment="Left" Margin="10,426,0,0" VerticalAlignment="Top"/>
-        <Button x:Name="btnClose" Content="Exit" HorizontalAlignment="Left" Margin="1140,706,0,0" VerticalAlignment="Top" Width="75" Click="btnClose_Click" RenderTransformOrigin="0.6,0.63"/>
+        <Button x:Name="btnClose" Content="Exit" HorizontalAlignment="Left" Margin="1195,627,0,0" VerticalAlignment="Top" Width="115" Click="btnClose_Click" RenderTransformOrigin="0.6,0.63" Height="78"/>
         <Label Content="Server" HorizontalAlignment="Left" Margin="1068,29,0,0" VerticalAlignment="Top"/>
-        <Button x:Name="btnTradeNextActive" Content="Trade Next Active" HorizontalAlignment="Left" Margin="1195,66,0,0" VerticalAlignment="Top" Width="110" Height="59"/>
-        <Button x:Name="btnTradeNextPassive" Content="Trade Next Passive" HorizontalAlignment="Left" Margin="1065,66,0,0" VerticalAlignment="Top" Width="115" Height="59" Click="btnTradeNextPassive_Click"/>
-        <Button x:Name="btnTradeCyclePAA" Content="Trade Cycle PAA" HorizontalAlignment="Left" Margin="1065,137,0,0" VerticalAlignment="Top" Width="115" Height="59"/>
-        <Button x:Name="btnTradeCyclePPA" Content="Trade Cycle PPA" HorizontalAlignment="Left" Margin="1195,137,0,0" VerticalAlignment="Top" Width="115" Height="59"/>
+        <Button x:Name="btnTradeNextActive" Content="Trade Next Active" HorizontalAlignment="Left" Margin="1195,115,0,0" VerticalAlignment="Top" Width="115" Height="59"/>
+        <Button x:Name="btnTradeNextPassive" Content="Trade Next Passive" HorizontalAlignment="Left" Margin="1065,115,0,0" VerticalAlignment="Top" Width="115" Height="59" Click="btnTradeNextPassive_Click"/>
+        <Button x:Name="btnTradeCyclePAA" Content="Trade Cycle PAA" HorizontalAlignment="Left" Margin="1065,186,0,0" VerticalAlignment="Top" Width="115" Height="59"/>
+        <Button x:Name="btnTradeCyclePPA" Content="Trade Cycle PPA" HorizontalAlignment="Left" Margin="1195,186,0,0" VerticalAlignment="Top" Width="115" Height="59"/>
+        <TextBox x:Name="txtUSD" HorizontalAlignment="Left" Height="23" Margin="1195,67,0,0" TextWrapping="Wrap" Text="1" VerticalAlignment="Top" Width="108"/>
+        <Label Content="USD Equivalent" HorizontalAlignment="Left" Margin="1068,64,0,0" VerticalAlignment="Top"/>
+        <Button x:Name="btnTradeCyclePAA_Copy" Content="Trade Simul PAA" HorizontalAlignment="Left" Margin="1066,257,0,0" VerticalAlignment="Top" Width="115" Height="59"/>
+        <Button x:Name="btnTradeCyclePAA_Copy1" Content="Trade Simul PPA" HorizontalAlignment="Left" Margin="1195,257,0,0" VerticalAlignment="Top" Width="115" Height="59"/>
 
     </Grid>
 </Window>
