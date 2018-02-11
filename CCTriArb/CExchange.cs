@@ -18,8 +18,8 @@ namespace CCTriArb
         #endregion
 
         #region Properties
-        public ObservableCollection <CProduct> colProducts { get; set; }
-        public Dictionary<String, double> dctPositions { get; set; }
+        public Dictionary <String, CProduct> dctProducts { get; set; }
+        public Dictionary<String, Double> dctPositions { get; set; }
         public Dictionary<String, String> dctAccounts { get; set; }
         public String Name { get; set; }
         public string BaseURL { get; set; }
@@ -32,7 +32,7 @@ namespace CCTriArb
         #region Constructor
         public CExchange(CStrategyServer server)
         {
-            colProducts = new ObservableCollection<CProduct>();
+            dctProducts = new Dictionary<String, CProduct>();
             dctAccounts = new Dictionary<String, String>();
             dctPositions = new Dictionary<String, double>();
             this.Server = server;
@@ -43,7 +43,7 @@ namespace CCTriArb
         public abstract void pollTicks(object source, ElapsedEventArgs e);
         public abstract void pollOrders(object source, ElapsedEventArgs e);
         public abstract void getAccounts();
-        public abstract void trade(ServerType serverType, OrderSide? side, CProduct product, Double size, Decimal? price);
+        public abstract void trade(CStrategy strategy, ServerType serverType, OrderSide? side, CProduct product, Double size, Decimal? price);
         public abstract void cancel(String orderID);
         public abstract void cancelAll();
 

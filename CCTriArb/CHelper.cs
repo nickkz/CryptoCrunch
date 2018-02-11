@@ -20,8 +20,13 @@ namespace CCTriArb
 
         public static DateTime ConvertFromUnixTimestamp(double timestamp)
         {
-            DateTime origin = new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc);
-            return origin.AddSeconds(timestamp);
+            //DateTime origin = new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc);
+            //return origin.AddSeconds(timestamp);
+
+            // Unix timestamp is seconds past epoch
+            DateTime dtDateTime = new DateTime(1970, 1, 1, 0, 0, 0, 0, System.DateTimeKind.Utc);
+            dtDateTime = dtDateTime.AddSeconds(timestamp).ToLocalTime();
+            return dtDateTime;
         }
 
         public static double ConvertToUnixTimestamp(DateTime date)

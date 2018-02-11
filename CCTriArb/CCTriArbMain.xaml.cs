@@ -46,16 +46,27 @@ namespace CCTriArb
         private void frmTriArbMain_Loaded(object sender, RoutedEventArgs e)
         {
             dgStrategies.DataContext = server.colStrategies;
+            dgOrders.DataContext = server.colOrders;
         }
 
         private void btnTradeNextPassive_Click(object sender, RoutedEventArgs e)
         {
             int selectedRow = dgStrategies.SelectedIndex;
+            Double size = 1;
+            bool parseAmount = Double.TryParse(txtUSD.Text, out size);
             if (selectedRow > -1)
             {
                 CTriArb triarb = server.colStrategies[selectedRow];
+                triarb.tradeNext(server.serverType, size, false);
+            }
+        }
+
+        private void cboServer_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (server != null)
+            {
                 Enum.TryParse(((ComboBoxItem)cboServer.SelectedItem).Content.ToString(), out ServerType serverType);
-                triarb.tradeNext(serverType, false);
+                server.serverType = serverType;
             }
         }
     }

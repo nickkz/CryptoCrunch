@@ -40,8 +40,8 @@ namespace CCTriArb
         {
             try
             {
-                ServerType serverType = ServerType.Debugging;
-                CProduct product = colProducts[0];
+                ServerType serverType = Server.serverType;
+                CProduct product = dctProducts["BTC-USDT"];
                 Uri baseAddress;
                 switch (serverType)
                 {
@@ -109,8 +109,48 @@ namespace CCTriArb
                 HttpResponseMessage response = await httpClient.SendAsync(requestMessage);
 
                 // Just as an example I'm turning the response into a string here
-                string responseAsString = await response.Content.ReadAsStringAsync();
-                Server.AddLog(responseAsString);
+                string json = await response.Content.ReadAsStringAsync();
+
+                dynamic orderData = JsonConvert.DeserializeObject(json);
+                var orders = orderData.data;
+                if (orders != null )
+                {
+                    foreach (var orderSideSet in orders)
+                    {
+                        String name = orderSideSet.Name;
+                        foreach (var orderSideSetOrders in orderSideSet)
+                        {
+                            foreach (var orderSideSetOrder in orderSideSetOrders)
+                            {
+                                Server.AddLog(orderSideSetOrder + " Found");
+                                int iAttrCount = 0;
+                                Double executed = 0;
+                                String orderID = null;
+                                foreach (var orderSideSetOrderAttr in orderSideSetOrder)
+                                {
+                                    // timestamp, side, price, size, executed, orderID
+                                    switch (++iAttrCount)
+                                    {
+                                        case 5:
+                                            executed = orderSideSetOrderAttr;
+                                            break;
+
+                                        case 6:
+                                            orderID = orderSideSetOrderAttr;
+                                            break;
+                                    }
+                                }
+
+                                if (orderID != null && Server.dctIdToOrder.ContainsKey(orderID))
+                                {
+                                    COrder order = Server.dctIdToOrder[orderID];
+                                    order.Executed = executed;
+                                }
+                            }
+                        }
+                    }
+                }
+
             }
             catch (Exception ex)
             {
@@ -123,7 +163,7 @@ namespace CCTriArb
             var wc = new WebClient();
             wc.Headers.Add("user-agent", USER_AGENT);
             TaskCompletionSource<string> tcs = new TaskCompletionSource<string>();
-            foreach (CProduct product in colProducts)
+            foreach (CProduct product in dctProducts.Values)
             {
                 try
                 {
@@ -152,7 +192,7 @@ namespace CCTriArb
             }
         }
 
-        public override async void trade(ServerType serverType, OrderSide? side, CProduct product, Double size, decimal? price)
+        public override async void trade(CStrategy strategy, ServerType serverType, OrderSide? side, CProduct product, Double size, decimal? price)
         {
             try
             {
@@ -201,8 +241,6 @@ namespace CCTriArb
                 String ApiForSign = endpoint + "/" + nonce + "/" + strQuery;
                 String Base64ForSign = CHelper.Base64Encode(ApiForSign);
 
-                //String APIsign = ComputeHash_C("SHA256", Base64ForSign, API_SECRET, "STRHEX")
-
                 UTF8Encoding encoding = new System.Text.UTF8Encoding();
                 byte[] keyByte = encoding.GetBytes(API_SECRET);
                 byte[] messageBytes = encoding.GetBytes(Base64ForSign);
@@ -230,24 +268,27 @@ namespace CCTriArb
                 // Send the request to the server
                 HttpResponseMessage response = await httpClient.SendAsync(requestMessage);
 
-                // Just as an example I'm turning the response into a string here
-                string responseAsString = await response.Content.ReadAsStringAsync();
+                string json = await response.Content.ReadAsStringAsync();
 
-                /*
-                httpClient.DefaultRequestHeaders.Add("KC-API-SIGNATURE", signatureResult);
-                httpClient.DefaultRequestHeaders.Add("KC-API-KEY", API_KEY);
-                httpClient.DefaultRequestHeaders.Add("KC-API-NONCE", nonce);
-                //httpClient.DefaultRequestHeaders.Add("Content-Type", "application/json");
+                // parse order String
+                dynamic orderData = JsonConvert.DeserializeObject(json);
+                String orderID = orderData.data.orderOid;
+                COrder order = new COrder(orderID);
+                order.Product = product;
+                order.Side = side.GetValueOrDefault();
+                order.Size = size;
+                order.Status = orderData.msg;
+                order.Strategy = strategy;
+                order.Exchange = this;
+                Double timeStamp = orderData.timestamp;
+                //order.TimeStamp = CHelper.ConvertFromUnixTimestamp(timeStamp);
 
-                response = await httpClient.PostAsync(baseAddress + endpoint, queryString);//.ConfigureAwait(false);
-                if (response.StatusCode == HttpStatusCode.OK)
-                {
-                    // Do something with response. Example get content:
-                }
+                // add order to both Strategy orders and global Orders
+                Server.colOrders.Add(order);
+                Server.dctIdToOrder.Add(orderID, order);
+                strategy.DctOrders.Add(orderID, order);
 
-                var responseContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-                */
-                Server.AddLog(responseAsString);
+                Server.AddLog(json);
             }
             catch (Exception ex)
             {

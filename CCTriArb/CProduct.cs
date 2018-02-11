@@ -29,5 +29,10 @@ namespace CCTriArb
         {
             return true;
         }
+
+        public override String ToString()
+        {
+            return Symbol;
+        }
     }
 }

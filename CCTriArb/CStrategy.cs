@@ -11,28 +11,35 @@ namespace CCTriArb
     public abstract class CStrategy : INotifyPropertyChanged
     {
         protected CStrategyServer server;
-        protected Dictionary<int, Tuple<OrderSide, CProduct>> dctLegs;
         protected int currentLeg;
-        protected ObservableCollection<CProduct> colProducts;
+        protected Dictionary<int, Tuple<OrderSide, CProduct>> dctLegs;
+        public Dictionary<String, CProduct> DctProducts { get; set; }
+        public Dictionary<String, COrder> DctOrders { get; set; }
 
         protected CStrategy(CStrategyServer server, Dictionary<int, Tuple<OrderSide, CProduct>> dctLegs)
         {
             this.server = server;
             this.dctLegs = dctLegs;
             currentLeg = 1;
-            colProducts = new ObservableCollection<CProduct>();
+            DctProducts = new Dictionary<String, CProduct>();
+            DctOrders = new Dictionary<String, COrder>();
 
-            // link everything
+            // link everything up
             for (int i = 1; i <= dctLegs.Count; i++)
             {
-                // link Strategy to Product
+                // assign Strategy to Leg
                 dctLegs[i].Item2.colStrategy.Add(this);
 
-                // add Product to Product collection
-                colProducts.Add(dctLegs[i].Item2);
+                // assign Product to Global Product Collection
+                CProduct product = dctLegs[i].Item2;
+                if (!DctProducts.ContainsKey(product.Symbol))
+                    DctProducts.Add(product.Symbol, product);
 
-                // add product subscription to Exchange
-                dctLegs[i].Item2.Exchange.colProducts.Add(dctLegs[i].Item2);
+                // assign Product to Exchange Product Collection 
+                if (!dctLegs[i].Item2.Exchange.dctProducts.ContainsKey(product.Symbol))
+                    dctLegs[i].Item2.Exchange.dctProducts.Add(product.Symbol, product);
+
+                //TODO: any more linking
             }
         }
 
@@ -172,10 +179,9 @@ namespace CCTriArb
                 this.OnPropertyChanged("Leg" + i);
                 this.OnPropertyChanged("Leg" + i + "Bid");
                 this.OnPropertyChanged("Leg" + i + "Ask");
-                //this.OnPropertyChanged("Leg" + i + "Last");
-                //this.OnPropertyChanged("Leg" + i + "Volume");
             }
         }
+
     }
 
 }

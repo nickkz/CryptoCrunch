@@ -90,14 +90,59 @@ namespace CCTriArb
             this.OnPropertyChanged("ProfitPPP");
         }
 
-        public void tradeNext(ServerType serverType, Boolean active)
+        public void tradeNext(ServerType serverType, Double dUSD, Boolean active)
         {
             OrderSide side = dctLegs[currentLeg].Item1;
             CProduct product = dctLegs[currentLeg].Item2;
-            dctLegs[currentLeg].Item2.Exchange.trade(serverType, side, product, 0.00001, side == OrderSide.Buy ? product.Bid : product.Ask);
+            Double size = 0.00001;
+
+            if (product.Symbol.EndsWith("USD") || product.Symbol.EndsWith("USDT"))
+            {
+                if (side  == OrderSide.Buy)
+                {
+                    size = dUSD / (double)product.Last;
+                }
+                else
+                {
+                    size = dUSD;
+                }
+            }
+            else if (product.Symbol.StartsWith("USD") || product.Symbol.StartsWith("USDT"))
+            {
+                if (side == OrderSide.Buy)
+                {
+                    size = dUSD;
+                }
+                else
+                {
+                    size = dUSD / (double)product.Last;
+                }
+            }
+            else
+            {
+                String productUSD = product.Symbol.Substring(0, 3) + "-USDT";
+                CProduct productExchange = DctProducts[productUSD];
+                if (productExchange.Symbol.Equals(productUSD))
+                {
+                    if (side == OrderSide.Buy)
+                    {
+                        size = dUSD / (double)productExchange.Last;
+                    }
+                    else
+                    {
+                        size = dUSD;
+                    }
+                }
+            }
+
+            dctLegs[currentLeg].Item2.Exchange.trade(this, serverType, side, product, size, side == OrderSide.Buy ? product.Bid : product.Ask);
             if (++currentLeg > dctLegs.Count)
                 currentLeg = 1;
         }
 
+        public override string ToString()
+        {
+            return Leg1 + " "  + Leg2 + " " + Leg3;
+        }
     }
 }
