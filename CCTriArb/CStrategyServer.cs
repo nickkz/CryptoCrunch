@@ -31,9 +31,9 @@ namespace CCTriArb
             Dictionary<int, Tuple<OrderSide, CProduct>> dctLegs_USD_ETH_BTC = new Dictionary<int, Tuple<OrderSide, CProduct>>();
 
             dctProducts = new Dictionary<String, CProduct>();
-            CProduct product_ku_BTC_USDT = new CProduct(kuExchange, "BTC-USDT");
-            CProduct product_ku_ETH_BTC = new CProduct(kuExchange, "ETH-BTC");
-            CProduct product_ku_ETH_USDT = new CProduct(kuExchange, "ETH-USDT");
+            CProduct product_ku_BTC_USDT = new CProduct(kuExchange, "BTC-USDT", 6, 8);
+            CProduct product_ku_ETH_BTC = new CProduct(kuExchange, "ETH-BTC", 6, 6);
+            CProduct product_ku_ETH_USDT = new CProduct(kuExchange, "ETH-USDT", 6, 6);
 
             dctProducts.Add(product_ku_BTC_USDT.Symbol, product_ku_BTC_USDT);
             dctProducts.Add(product_ku_ETH_BTC.Symbol, product_ku_ETH_BTC);

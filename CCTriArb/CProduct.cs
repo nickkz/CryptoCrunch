@@ -16,18 +16,17 @@ namespace CCTriArb
         public Decimal? Last { get; set; }
         public Decimal? Volume { get; set; }
         public DateTime DtUpdate { get; set; }
+        public int PrecisionSize { get; set; }
+        public int PrecisionPrice { get; set; }
         public ObservableCollection<CStrategy> colStrategy;
 
-        public CProduct(CExchange exchange, String symbol)
+        public CProduct(CExchange exchange, String symbol, int precisionSize, int precisionPrice)
         {
             Symbol = symbol;
             this.Exchange = exchange;
+            this.PrecisionSize = precisionSize;
+            this.PrecisionPrice = precisionPrice;
             colStrategy = new ObservableCollection<CStrategy>();
-        }
-
-        public bool subscribe()
-        {
-            return true;
         }
 
         public override String ToString()

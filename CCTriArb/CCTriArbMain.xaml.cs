@@ -61,6 +61,19 @@ namespace CCTriArb
             }
         }
 
+        private void btnTradeNextActive_Click(object sender, RoutedEventArgs e)
+        {
+            int selectedRow = dgStrategies.SelectedIndex;
+            Double size = 1;
+            bool parseAmount = Double.TryParse(txtUSD.Text, out size);
+            if (selectedRow > -1)
+            {
+                CTriArb triarb = server.colStrategies[selectedRow];
+                triarb.tradeNext(server.serverType, size, true);
+            }
+
+        }
+
         private void cboServer_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (server != null)
@@ -69,5 +82,14 @@ namespace CCTriArb
                 server.serverType = serverType;
             }
         }
+
+        private void btnCancelAll_Click(object sender, RoutedEventArgs e)
+        {
+            foreach (CExchange exchange in server.dctExchanges.Values)
+            {
+                exchange.cancelAll();
+            }
+        }
+
     }
 }

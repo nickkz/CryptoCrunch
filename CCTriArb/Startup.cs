@@ -13,7 +13,7 @@ namespace CCTriArb
         //[STAThread]
         public static void Main()
         {
-            Console.WriteLine("Startup");
+            Console.WriteLine("Startup at " + DateTime.Now);
             CStrategyServer server = new CStrategyServer();
             while (server.IsActive)
                 System.Threading.Thread.Sleep(1000);

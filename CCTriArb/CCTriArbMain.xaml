@@ -29,12 +29,17 @@
         <DataGrid AutoGenerateColumns="False" HorizontalAlignment="Left" Name="dgOrders" Height="167" Margin="20,245,0,0" VerticalAlignment="Top" Width="1020" CanUserResizeColumns="True" CanUserAddRows="False" ItemsSource="{Binding}">
             <DataGrid.Columns>
                 <DataGridTextColumn Header="OrderID" Width="60" Binding="{Binding OrderID,StringFormat=N3, Mode=OneWay}" />
-                <DataGridTextColumn Header="Exchange" Width="90" Binding="{Binding Exchange,Mode=OneWay}" />
-                <DataGridTextColumn Header="Strategy" Width="90" Binding="{Binding Strategy,Mode=OneWay}" />
+                <DataGridTextColumn Header="Exchange" Width="70" Binding="{Binding Exchange,Mode=OneWay}" />
+                <DataGridTextColumn Header="Strategy" Width="150" Binding="{Binding Strategy,Mode=OneWay}" />
                 <DataGridTextColumn Header="Product" Width="90" Binding="{Binding Product,Mode=OneWay}" />
                 <DataGridTextColumn Header="Size" Width="90" Binding="{Binding Size,Mode=OneWay}" />
-                <DataGridTextColumn Header="Executed" Width="90" Binding="{Binding Executed,Mode=OneWay}" />
+                <DataGridTextColumn Header="Price" Width="90" Binding="{Binding Price,Mode=OneWay}" />
+                <DataGridTextColumn Header="DealPrice" Width="90" Binding="{Binding DealPrice,Mode=OneWay}" />
+                <DataGridTextColumn Header="Filled" Width="70" Binding="{Binding Filled,Mode=OneWay}" />
                 <DataGridTextColumn Header="Status" Width="90" Binding="{Binding Status,Mode=OneWay}" />
+                <DataGridTextColumn Header="Sent" Width="130" Binding="{Binding TimeStampSent,Mode=OneWay}" />
+                <DataGridTextColumn Header="Last Update" Width="130" Binding="{Binding TimeStampLastUpdate,Mode=OneWay}" />
+                <DataGridTextColumn Header="Filled" Width="130" Binding="{Binding TimeStampFilled,Mode=OneWay}" />
             </DataGrid.Columns>
         </DataGrid>
         <Label Content="Orders" HorizontalAlignment="Left" Margin="8,219,0,0" VerticalAlignment="Top"/>
@@ -47,14 +52,16 @@
         <Label Content="Log" HorizontalAlignment="Left" Margin="10,426,0,0" VerticalAlignment="Top"/>
         <Button x:Name="btnClose" Content="Exit" HorizontalAlignment="Left" Margin="1195,627,0,0" VerticalAlignment="Top" Width="115" Click="btnClose_Click" RenderTransformOrigin="0.6,0.63" Height="78"/>
         <Label Content="Server" HorizontalAlignment="Left" Margin="1068,29,0,0" VerticalAlignment="Top"/>
-        <Button x:Name="btnTradeNextActive" Content="Trade Next Active" HorizontalAlignment="Left" Margin="1195,115,0,0" VerticalAlignment="Top" Width="115" Height="59"/>
-        <Button x:Name="btnTradeNextPassive" Content="Trade Next Passive" HorizontalAlignment="Left" Margin="1065,115,0,0" VerticalAlignment="Top" Width="115" Height="59" Click="btnTradeNextPassive_Click"/>
-        <Button x:Name="btnTradeCyclePAA" Content="Trade Cycle PAA" HorizontalAlignment="Left" Margin="1065,186,0,0" VerticalAlignment="Top" Width="115" Height="59"/>
-        <Button x:Name="btnTradeCyclePPA" Content="Trade Cycle PPA" HorizontalAlignment="Left" Margin="1195,186,0,0" VerticalAlignment="Top" Width="115" Height="59"/>
+        <Button x:Name="btnTradeNextActive" Content="Trade Next Active" HorizontalAlignment="Left" Margin="1195,115,0,0" VerticalAlignment="Top" Width="115" Height="40" Click="btnTradeNextActive_Click"/>
+        <Button x:Name="btnTradeNextPassive" Content="Trade Next Passive" HorizontalAlignment="Left" Margin="1065,115,0,0" VerticalAlignment="Top" Width="115" Height="40" Click="btnTradeNextPassive_Click"/>
+        <Button x:Name="btnTradeCyclePAA" Content="Trade Cycle PAA" HorizontalAlignment="Left" Margin="1065,167,0,0" VerticalAlignment="Top" Width="115" Height="40"/>
+        <Button x:Name="btnTradeCyclePPA" Content="Trade Cycle PPA" HorizontalAlignment="Left" Margin="1195,167,0,0" VerticalAlignment="Top" Width="115" Height="40"/>
         <TextBox x:Name="txtUSD" HorizontalAlignment="Left" Height="23" Margin="1195,67,0,0" TextWrapping="Wrap" Text="1" VerticalAlignment="Top" Width="108"/>
         <Label Content="USD Equivalent" HorizontalAlignment="Left" Margin="1068,64,0,0" VerticalAlignment="Top"/>
-        <Button x:Name="btnTradeCyclePAA_Copy" Content="Trade Simul PAA" HorizontalAlignment="Left" Margin="1066,257,0,0" VerticalAlignment="Top" Width="115" Height="59"/>
-        <Button x:Name="btnTradeCyclePAA_Copy1" Content="Trade Simul PPA" HorizontalAlignment="Left" Margin="1195,257,0,0" VerticalAlignment="Top" Width="115" Height="59"/>
+        <Button x:Name="btnTradeCyclePAA_Copy" Content="Trade Simul PAA" HorizontalAlignment="Left" Margin="1066,221,0,0" VerticalAlignment="Top" Width="115" Height="40"/>
+        <Button x:Name="btnTradeCyclePAA_Copy1" Content="Trade Simul PPA" HorizontalAlignment="Left" Margin="1195,221,0,0" VerticalAlignment="Top" Width="115" Height="40"/>
+        <Button x:Name="btnCancel" Content="Cancel One" HorizontalAlignment="Left" Margin="1066,370,0,0" VerticalAlignment="Top" Width="115" Height="40"/>
+        <Button x:Name="btnCancelAll" Content="Cancel All" HorizontalAlignment="Left" Margin="1195,370,0,0" VerticalAlignment="Top" Width="115" Height="40" Click="btnCancelAll_Click"/>
 
     </Grid>
 </Window>

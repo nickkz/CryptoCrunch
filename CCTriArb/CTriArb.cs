@@ -95,17 +95,11 @@ namespace CCTriArb
             OrderSide side = dctLegs[currentLeg].Item1;
             CProduct product = dctLegs[currentLeg].Item2;
             Double size = 0.00001;
+            Double price;
 
             if (product.Symbol.EndsWith("USD") || product.Symbol.EndsWith("USDT"))
             {
-                if (side  == OrderSide.Buy)
-                {
-                    size = dUSD / (double)product.Last;
-                }
-                else
-                {
-                    size = dUSD;
-                }
+                size = dUSD / (double)product.Last;
             }
             else if (product.Symbol.StartsWith("USD") || product.Symbol.StartsWith("USDT"))
             {
@@ -124,18 +118,23 @@ namespace CCTriArb
                 CProduct productExchange = DctProducts[productUSD];
                 if (productExchange.Symbol.Equals(productUSD))
                 {
-                    if (side == OrderSide.Buy)
-                    {
-                        size = dUSD / (double)productExchange.Last;
-                    }
-                    else
-                    {
-                        size = dUSD;
-                    }
+                    size = dUSD / (double)productExchange.Last;
                 }
             }
 
-            dctLegs[currentLeg].Item2.Exchange.trade(this, serverType, side, product, size, side == OrderSide.Buy ? product.Bid : product.Ask);
+            if (active)
+            {
+                price = ((Double)product.Bid + (Double)product.Ask) / 2.0;
+            }
+            else if (side == OrderSide.Buy)
+            {
+                price = (Double) product.Bid;
+            }
+            else
+            {
+                price = (Double)product.Ask;
+            }
+            dctLegs[currentLeg].Item2.Exchange.trade(this, side, product, Math.Round(size, product.PrecisionSize), Math.Round(price, product.PrecisionPrice));
             if (++currentLeg > dctLegs.Count)
                 currentLeg = 1;
         }

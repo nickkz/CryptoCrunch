@@ -51,9 +51,7 @@ namespace CCTriArb
                 handler(this, new PropertyChangedEventArgs(propertyName));
             }
         }
-
         public event PropertyChangedEventHandler PropertyChanged;
-
 
         public String Leg1 { get { return GetLegDescription(1); } }
         public String Leg2 { get { return GetLegDescription(2); } }
