@@ -26,33 +26,51 @@ namespace CCTriArb
         {
             IsActive = true;
             CExchange kuExchange = new CKuCoin(this);
+            CExchange beExchange = new CBinance(this);
 
-            Dictionary<int, Tuple<OrderSide, CProduct>> dctLegs_USD_BTC_ETH = new Dictionary<int, Tuple<OrderSide, CProduct>>();
-            Dictionary<int, Tuple<OrderSide, CProduct>> dctLegs_USD_ETH_BTC = new Dictionary<int, Tuple<OrderSide, CProduct>>();
+            Dictionary<int, Tuple<OrderSide, CProduct>> dctLegs_ku_USD_BTC_ETH = new Dictionary<int, Tuple<OrderSide, CProduct>>();
+            Dictionary<int, Tuple<OrderSide, CProduct>> dctLegs_ku_USD_ETH_BTC = new Dictionary<int, Tuple<OrderSide, CProduct>>();
+            Dictionary<int, Tuple<OrderSide, CProduct>> dctLegs_be_USD_BTC_ETH = new Dictionary<int, Tuple<OrderSide, CProduct>>();
+            Dictionary<int, Tuple<OrderSide, CProduct>> dctLegs_be_USD_ETH_BTC = new Dictionary<int, Tuple<OrderSide, CProduct>>();
 
             dctProducts = new Dictionary<String, CProduct>();
             CProduct product_ku_BTC_USDT = new CProduct(kuExchange, "BTC-USDT", 6, 8);
             CProduct product_ku_ETH_BTC = new CProduct(kuExchange, "ETH-BTC", 6, 6);
             CProduct product_ku_ETH_USDT = new CProduct(kuExchange, "ETH-USDT", 6, 6);
+            CProduct product_be_BTC_USDT = new CProduct(beExchange, "BTCUSDT", 6, 8);
+            CProduct product_be_ETH_BTC = new CProduct(beExchange, "ETHBTC", 3, 6);
+            CProduct product_be_ETH_USDT = new CProduct(beExchange, "ETHUSDT", 4, 6);
 
             dctProducts.Add(product_ku_BTC_USDT.Symbol, product_ku_BTC_USDT);
             dctProducts.Add(product_ku_ETH_BTC.Symbol, product_ku_ETH_BTC);
             dctProducts.Add(product_ku_ETH_USDT.Symbol, product_ku_ETH_USDT);
+            dctProducts.Add(product_be_BTC_USDT.Symbol, product_be_BTC_USDT);
+            dctProducts.Add(product_be_ETH_BTC.Symbol, product_be_ETH_BTC);
+            dctProducts.Add(product_be_ETH_USDT.Symbol, product_be_ETH_USDT);
 
-            dctLegs_USD_BTC_ETH.Add(1, new Tuple<OrderSide, CProduct>(OrderSide.Buy, product_ku_BTC_USDT));
-            dctLegs_USD_BTC_ETH.Add(2, new Tuple<OrderSide, CProduct>(OrderSide.Buy, product_ku_ETH_BTC));
-            dctLegs_USD_BTC_ETH.Add(3, new Tuple<OrderSide, CProduct>(OrderSide.Sell, product_ku_ETH_USDT));
+            dctLegs_ku_USD_BTC_ETH.Add(1, new Tuple<OrderSide, CProduct>(OrderSide.Buy, product_ku_BTC_USDT));
+            dctLegs_ku_USD_BTC_ETH.Add(2, new Tuple<OrderSide, CProduct>(OrderSide.Buy, product_ku_ETH_BTC));
+            dctLegs_ku_USD_BTC_ETH.Add(3, new Tuple<OrderSide, CProduct>(OrderSide.Sell, product_ku_ETH_USDT));
+            dctLegs_ku_USD_ETH_BTC.Add(1, new Tuple<OrderSide, CProduct>(OrderSide.Buy, product_ku_ETH_USDT));
+            dctLegs_ku_USD_ETH_BTC.Add(2, new Tuple<OrderSide, CProduct>(OrderSide.Sell, product_ku_ETH_BTC));
+            dctLegs_ku_USD_ETH_BTC.Add(3, new Tuple<OrderSide, CProduct>(OrderSide.Sell, product_ku_BTC_USDT));
 
-            dctLegs_USD_ETH_BTC.Add(1, new Tuple<OrderSide, CProduct>(OrderSide.Buy, product_ku_ETH_USDT));
-            dctLegs_USD_ETH_BTC.Add(2, new Tuple<OrderSide, CProduct>(OrderSide.Sell, product_ku_ETH_BTC));
-            dctLegs_USD_ETH_BTC.Add(3, new Tuple<OrderSide, CProduct>(OrderSide.Sell, product_ku_BTC_USDT));
+            dctLegs_be_USD_BTC_ETH.Add(1, new Tuple<OrderSide, CProduct>(OrderSide.Buy, product_be_BTC_USDT));
+            dctLegs_be_USD_BTC_ETH.Add(2, new Tuple<OrderSide, CProduct>(OrderSide.Buy, product_be_ETH_BTC));
+            dctLegs_be_USD_BTC_ETH.Add(3, new Tuple<OrderSide, CProduct>(OrderSide.Sell, product_be_ETH_USDT));
+            dctLegs_be_USD_ETH_BTC.Add(1, new Tuple<OrderSide, CProduct>(OrderSide.Buy, product_be_ETH_USDT));
+            dctLegs_be_USD_ETH_BTC.Add(2, new Tuple<OrderSide, CProduct>(OrderSide.Sell, product_be_ETH_BTC));
+            dctLegs_be_USD_ETH_BTC.Add(3, new Tuple<OrderSide, CProduct>(OrderSide.Sell, product_be_BTC_USDT));
 
             colStrategies = new ObservableCollection<CTriArb>();
-            colStrategies.Add(new CTriArb(this, dctLegs_USD_BTC_ETH));
-            colStrategies.Add(new CTriArb(this, dctLegs_USD_ETH_BTC));
+            colStrategies.Add(new CTriArb(this, dctLegs_ku_USD_BTC_ETH));
+            colStrategies.Add(new CTriArb(this, dctLegs_ku_USD_ETH_BTC));
+            colStrategies.Add(new CTriArb(this, dctLegs_be_USD_BTC_ETH));
+            colStrategies.Add(new CTriArb(this, dctLegs_be_USD_ETH_BTC));
 
             dctExchanges = new Dictionary<String, CExchange>();
             dctExchanges.Add(kuExchange.Name, kuExchange);
+            dctExchanges.Add(beExchange.Name, beExchange);
 
             colOrders = new ObservableCollection<COrder>();
             dctIdToOrder = new Dictionary<String, COrder>();

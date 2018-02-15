@@ -1,5 +1,4 @@
-﻿using CryptoCrunch;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
@@ -10,6 +9,14 @@ namespace CCTriArb
 {
     public class CTriArb : CStrategy
     {
+        public enum StrategyState
+        {
+            Inactive,
+            Waiting,
+            Maker,
+            Taker
+        }
+
 
         internal CTriArb(CStrategyServer server, Dictionary<int, Tuple<OrderSide, CProduct>> dctLegs) : base(server, dctLegs)
         {
@@ -90,6 +97,19 @@ namespace CCTriArb
             this.OnPropertyChanged("ProfitPPP");
         }
 
+        public void runStrategy()
+        {
+            // determine maker leg 
+
+            // determine 3-leg profit 
+
+            // if profit > threshhold trade maker
+
+            // if maker executes trade takers
+
+            // if taker executes go back to waiting
+        }
+
         public void tradeNext(ServerType serverType, Double dUSD, Boolean active)
         {
             OrderSide side = dctLegs[currentLeg].Item1;
@@ -114,7 +134,10 @@ namespace CCTriArb
             }
             else
             {
-                String productUSD = product.Symbol.Substring(0, 3) + "-USDT";
+                String productUSD = product.Symbol.Substring(0, 3);
+                if (product.Exchange is CKuCoin)
+                    productUSD += "-";
+                productUSD += "USDT";
                 CProduct productExchange = DctProducts[productUSD];
                 if (productExchange.Symbol.Equals(productUSD))
                 {

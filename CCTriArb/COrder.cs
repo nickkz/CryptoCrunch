@@ -51,8 +51,13 @@ namespace CCTriArb
         public virtual void updateGUI()
         {
             this.OnPropertyChanged("Status");
-            this.OnPropertyChanged("TimeStamp");
-            this.OnPropertyChanged("Executed");
+            this.OnPropertyChanged("TimeStampSent");
+            this.OnPropertyChanged("TimeStampLastUpdate");
+            this.OnPropertyChanged("TimeStampFilled");
+            this.OnPropertyChanged("Filled");
+            this.OnPropertyChanged("DealPrice");
+            this.OnPropertyChanged("Fee");
+            this.OnPropertyChanged("FeeRate");
         }
     }
 }
