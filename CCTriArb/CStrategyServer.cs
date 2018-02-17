@@ -21,10 +21,14 @@ namespace CCTriArb
         public ServerType serverType = ServerType.Debugging;
 
         public bool IsActive { get; set; }
+        public Double? TradeUSD { get; set; }
+        public Double? MinProfit { get; set; }
 
         public CStrategyServer()
         {
             IsActive = true;
+            TradeUSD = 1.0;
+            MinProfit = 0.002;
             CExchange kuExchange = new CKuCoin(this);
             CExchange beExchange = new CBinance(this);
 
@@ -83,6 +87,10 @@ namespace CCTriArb
             timerOrders.Elapsed += new ElapsedEventHandler(pollOrders);
             timerOrders.Start();
 
+            System.Timers.Timer timerStrategy = new System.Timers.Timer(5000);
+            timerStrategy.Elapsed += new ElapsedEventHandler(cycleStrategy);
+            timerStrategy.Start();
+
             // open gui
             openGui();
         }
@@ -126,6 +134,14 @@ namespace CCTriArb
             foreach (var exchange in dctExchanges.Values)
             {
                 exchange.pollOrders(source, e);
+            }
+        }
+
+        private void cycleStrategy(object source, ElapsedEventArgs e)
+        {
+            foreach (var strategy in colStrategies)
+            {
+                strategy.cycleStrategy();
             }
         }
     }

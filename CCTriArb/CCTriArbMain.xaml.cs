@@ -91,5 +91,30 @@ namespace CCTriArb
             }
         }
 
+        private void btnTradeSingle_Click(object sender, RoutedEventArgs e)
+        {
+            int selectedRow = dgStrategies.SelectedIndex;
+            if (selectedRow > -1)
+            {
+                CTriArb triarb = server.colStrategies[selectedRow];
+                triarb.activateStrategy();
+            }
+        }
+
+        private void txtUSD_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            Double size;
+            bool parseAmount = Double.TryParse(txtUSD.Text, out size);
+            if (server != null)
+                server.TradeUSD = size;
+        }
+
+        private void txtMinProfit_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            Double minProfit;
+            bool parseAmount = Double.TryParse(txtMinProfit.Text, out minProfit);
+            if (server != null)
+                server.MinProfit = minProfit;
+        }
     }
 }

@@ -20,11 +20,6 @@ namespace CCTriArb
             getAccounts();
         }
 
-        public override void cancel(string orderID)
-        {
-            throw new NotImplementedException();
-        }
-
         public override void getAccounts()
         {
             //throw new NotImplementedException();
@@ -376,6 +371,100 @@ namespace CCTriArb
 
                 order.updateGUI();
 
+                Server.AddLog(json);
+            }
+            catch (Exception ex)
+            {
+                Server.AddLog(ex.Message);
+            }
+        }
+
+        public override async void cancel(string orderID)
+        {
+            try
+            {
+                Uri baseAddress;
+                switch (Server.serverType)
+                {
+                    case ServerType.Debugging:
+                        baseAddress = new Uri("https://private-f6a2b2-kucoinapidocs.apiary-proxy.com");
+                        break;
+
+                    case ServerType.Mock:
+                        baseAddress = new Uri("https://private-f6a2b2-kucoinapidocs.apiary-mock.com");
+                        break;
+
+                    default:
+                        baseAddress = new Uri("https://api.kucoin.com");
+                        break;
+                }
+
+                String API_KEY = Properties.Settings.Default.KUCOIN_API_KEY;
+                String API_SECRET = Properties.Settings.Default.KUCOIN_API_SECRET;
+                String endpoint = "/v1/cancel-order";  // API endpoint
+
+                HttpClient httpClient = new HttpClient();
+
+                COrder order = Server.dctIdToOrder[orderID];
+                CProduct product = order.Product;
+
+                Dictionary<string, string> parameters = new Dictionary<string, string> {
+                    { "symbol", product.Symbol },
+                    { "orderOid", orderID },
+                    { "type", order.Side.ToString() }
+                };
+
+                HttpContent queryString = new FormUrlEncodedContent(parameters);
+                String strQuery = "";
+                foreach (String param in parameters.Keys)
+                {
+                    if (strQuery.Length > 0)
+                        strQuery += "&";
+                    strQuery += (param + "=" + parameters[param]);
+                }
+
+                //splice string for signing
+                String nonce = CHelper.ConvertToUnixTimestamp().ToString();
+
+                String ApiForSign = endpoint + "/" + nonce + "/" + strQuery;
+                String Base64ForSign = CHelper.Base64Encode(ApiForSign);
+
+                UTF8Encoding encoding = new System.Text.UTF8Encoding();
+                byte[] keyByte = encoding.GetBytes(API_SECRET);
+                byte[] messageBytes = encoding.GetBytes(Base64ForSign);
+                HMACSHA256 hmacsha256 = new HMACSHA256(keyByte);
+                byte[] hashmessage = hmacsha256.ComputeHash(messageBytes);
+
+                byte[] ba = hashmessage;
+                StringBuilder hex = new StringBuilder(ba.Length * 2);
+                foreach (byte b in ba)
+                    hex.AppendFormat("{0:x2}", b);
+
+                String signatureResult = hex.ToString();
+
+                // Create a client
+                httpClient = new HttpClient();
+
+                // Add a new Request Message
+                HttpRequestMessage requestMessage = new HttpRequestMessage(HttpMethod.Post, baseAddress + endpoint + "?" + strQuery);
+
+                // Add our custom headers
+                requestMessage.Headers.Add("KC-API-SIGNATURE", signatureResult);
+                requestMessage.Headers.Add("KC-API-KEY", API_KEY);
+                requestMessage.Headers.Add("KC-API-NONCE", nonce);
+
+                // Send the request to the server
+                HttpResponseMessage response = await httpClient.SendAsync(requestMessage);
+
+                string json = await response.Content.ReadAsStringAsync();
+
+                // parse order String
+                dynamic cancelorderData = JsonConvert.DeserializeObject(json);
+                var orders = cancelorderData.data;
+
+                order.Status = "Cancelled";
+                order.TimeStampLastUpdate = DateTime.Now;
+                order.updateGUI();
                 Server.AddLog(json);
             }
             catch (Exception ex)

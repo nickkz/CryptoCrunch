@@ -15,14 +15,18 @@ namespace CCTriArb
         protected Dictionary<int, Tuple<OrderSide, CProduct>> dctLegs;
         public Dictionary<String, CProduct> DctProducts { get; set; }
         public Dictionary<String, COrder> DctOrders { get; set; }
+        public Dictionary<Int64, COrder> DctLegToOrder { get; set; }
+        protected Boolean processStrategy;
 
         protected CStrategy(CStrategyServer server, Dictionary<int, Tuple<OrderSide, CProduct>> dctLegs)
         {
             this.server = server;
             this.dctLegs = dctLegs;
+            processStrategy = false;
             currentLeg = 1;
             DctProducts = new Dictionary<String, CProduct>();
             DctOrders = new Dictionary<String, COrder>();
+            DctLegToOrder = new Dictionary<Int64, COrder>();
 
             // link everything up
             for (int i = 1; i <= dctLegs.Count; i++)
@@ -179,6 +183,8 @@ namespace CCTriArb
                 this.OnPropertyChanged("Leg" + i + "Ask");
             }
         }
+
+        public abstract void cycleStrategy();
 
     }
 

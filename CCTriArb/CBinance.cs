@@ -296,11 +296,11 @@ namespace CCTriArb
                 order.Side = side.GetValueOrDefault();
                 order.Size = size;
                 order.Price = price;
-                String orderStatus = result.Message;
+                String orderStatus = result.Result.ToString();
                 if (orderStatus.Equals("OK") || orderStatus.Equals("Sent"))
                     order.Status = "Sent";
                 else
-                    order.Status = "Unknown";
+                    order.Status = result.Result.ToString();
 
                 order.Strategy = strategy;
                 order.Exchange = this;

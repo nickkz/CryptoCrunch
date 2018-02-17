@@ -59,5 +59,12 @@ namespace CCTriArb
             this.OnPropertyChanged("Fee");
             this.OnPropertyChanged("FeeRate");
         }
+
+        public void cancel()
+        {
+            this.Exchange.cancel(this.OrderID);
+        }
+           
+
     }
 }
