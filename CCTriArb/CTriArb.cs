@@ -13,13 +13,15 @@ namespace CCTriArb
         public enum StrategyState
         {
             Inactive,
-            Waiting,
-            Maker,
-            Taker
+            Active,
+            MakerSend,
+            MakerProcess,
+            TakerSend,
+            TakerProcess
         }
         public StrategyState State { get; set; }
 
-        internal CTriArb(CStrategyServer server, Dictionary<int, Tuple<OrderSide, CProduct>> dctLegs) : base(server, dctLegs)
+        internal CTriArb(Dictionary<int, Tuple<OrderSide, CProduct>> dctLegs) : base(dctLegs)
         {
             State = StrategyState.Inactive;
         }
@@ -118,25 +120,51 @@ namespace CCTriArb
 
         public override void updateGUI()
         {
-            /*
-            this.OnPropertyChanged("ProfitAAA");
-            this.OnPropertyChanged("ProfitPAA");
-            this.OnPropertyChanged("ProfitPPA");
-            this.OnPropertyChanged("ProfitPPP");
-            */
             this.OnPropertyChanged("Profit");
+            this.OnPropertyChanged("State");
             base.updateGUI();
         }
 
         internal void activateStrategy()
         {
             Double profitUSD = server.TradeUSD.GetValueOrDefault() * server.MinProfit.GetValueOrDefault();
-            if (Profit >= profitUSD)
-                State = StrategyState.Maker;
+            State = StrategyState.Active;
+        }
+
+        internal Double GetSize(OrderSide side, CProduct product)
+        {
+            // create new order
+            double dUSD = server.TradeUSD.GetValueOrDefault();
+            Double size = 0.00001;
+
+            if (product.Symbol.EndsWith("USD") || product.Symbol.EndsWith("USDT"))
+            {
+                size = dUSD / (double)product.Last;
+            }
+            else if (product.Symbol.StartsWith("USD") || product.Symbol.StartsWith("USDT"))
+            {
+                if (side == OrderSide.Buy)
+                {
+                    size = dUSD;
+                }
+                else
+                {
+                    size = dUSD / (double)product.Last;
+                }
+            }
             else
-                State = StrategyState.Waiting;
-            this.OnPropertyChanged("State");
-            base.updateGUI();
+            {
+                String productUSD = product.Symbol.Substring(0, 3);
+                if (product.Exchange is CKuCoin)
+                    productUSD += "-";
+                productUSD += "USDT";
+                CProduct productExchange = DctProducts[productUSD];
+                if (productExchange.Symbol.Equals(productUSD))
+                {
+                    size = dUSD / (double)productExchange.Last;
+                }
+            }
+            return size;
         }
 
         public override void cycleStrategy()
@@ -149,133 +177,80 @@ namespace CCTriArb
             try
             {
                 Double profitUSD = server.TradeUSD.GetValueOrDefault() * server.MinProfit.GetValueOrDefault();
-                if (State == StrategyState.Inactive)
-                    return;
-
-                if (State == StrategyState.Waiting)
+                switch (State)
                 {
-                    if (Profit >= profitUSD)
-                    {
-                        State = StrategyState.Maker;
-                        this.OnPropertyChanged("State");
-                        base.updateGUI();
-                    }
-                    else
-                    {
-                        processStrategy = false;
-                        return;
-                    }
-                }
+                    case StrategyState.Inactive:
+                        break;
 
-                if (State == StrategyState.Maker)
-                {
-                    // check for filled order, if so go to Taker State
-                    if (DctLegToOrder.ContainsKey(MAKER_LEG))
-                    {
+                    case StrategyState.Active:
+                        if (Profit >= profitUSD)
+                        {
+                            State = StrategyState.MakerSend;
+                            DctLegToOrder.Clear();
+                            goto case StrategyState.MakerSend;
+                        }
+                        break;
+
+                    case StrategyState.MakerSend:
+                        CurrentLeg = MAKER_LEG;
+                        double dUSD = server.TradeUSD.GetValueOrDefault();
+                        OrderSide sideMaker = dctLegs[CurrentLeg].Item1;
+                        CProduct productMaker = dctLegs[CurrentLeg].Item2;
+                        Double sizeMaker = GetSize(sideMaker, productMaker);
+                        Double priceMaker = (double)(sideMaker == OrderSide.Buy ? productMaker.Bid : productMaker.Ask);
+                        dctLegs[MAKER_LEG].Item2.Exchange.trade(this, MAKER_LEG, sideMaker, productMaker, Math.Round(sizeMaker, productMaker.PrecisionSize), Math.Round(priceMaker, productMaker.PrecisionPrice));
+                        State = StrategyState.MakerProcess;
+                        break;
+
+                    case StrategyState.MakerProcess:
                         COrder order = DctLegToOrder[MAKER_LEG];
                         if (order.Status == "Filled")
                         {
-                            State = StrategyState.Taker;
-                            this.OnPropertyChanged("State");
-                            base.updateGUI();
-                            processStrategy = false;
-                            return;
+                            State = StrategyState.TakerSend;
                         }
                         else if (Profit < profitUSD)
                         {
                             order.cancel();
-                            State = StrategyState.Waiting;
-                            this.OnPropertyChanged("State");
-                            base.updateGUI();
-                            processStrategy = false;
-                            return;
+                            State = StrategyState.Active;
+                            DctLegToOrder.Clear();
                         }
-                        // check if not on edge of market, cancel and create another order
-                    }
+                        break;
 
-                    // create new order
-                    double dUSD = server.TradeUSD.GetValueOrDefault();
-                    OrderSide side = dctLegs[MAKER_LEG].Item1;
-                    CProduct product = dctLegs[MAKER_LEG].Item2;
-                    Double size = 0.00001;
-                    Double price;
-
-                    if (product.Symbol.EndsWith("USD") || product.Symbol.EndsWith("USDT"))
-                    {
-                        size = dUSD / (double)product.Last;
-                    }
-                    else if (product.Symbol.StartsWith("USD") || product.Symbol.StartsWith("USDT"))
-                    {
-                        if (side == OrderSide.Buy)
+                    case StrategyState.TakerSend:
+                        for (int currentLeg = 1; currentLeg <= dctLegs.Count; currentLeg++)
                         {
-                            size = dUSD;
+                            if (currentLeg != MAKER_LEG)
+                            {
+                                OrderSide sideTaker = dctLegs[currentLeg].Item1;
+                                CProduct productTaker = dctLegs[currentLeg].Item2;
+                                Double sizeTaker = GetSize(sideTaker, productTaker);
+                                Double priceTaker = ((Double)productTaker.Bid + (Double)productTaker.Ask) / 2.0;
+                                CurrentLeg = currentLeg;
+                                dctLegs[CurrentLeg].Item2.Exchange.trade(this, currentLeg, sideTaker, productTaker, Math.Round(sizeTaker, productTaker.PrecisionSize), Math.Round(priceTaker, productTaker.PrecisionPrice));
+                            }
                         }
-                        else
+                        State = StrategyState.TakerProcess;
+                        break;
+
+                    case StrategyState.TakerProcess:
+                        Boolean allFilled = true;
+                        for (int currentLeg = 1; currentLeg <= dctLegs.Count; currentLeg++)
                         {
-                            size = dUSD / (double)product.Last;
+                            if (DctLegToOrder.ContainsKey(currentLeg))
+                            {
+                                COrder orderTaker = DctLegToOrder[currentLeg];
+                                if (orderTaker.Status != "Filled")
+                                    allFilled = false;
+                            }
+                            else
+                                allFilled = false;
                         }
-                    }
-                    else
-                    {
-                        String productUSD = product.Symbol.Substring(0, 3);
-                        if (product.Exchange is CKuCoin)
-                            productUSD += "-";
-                        productUSD += "USDT";
-                        CProduct productExchange = DctProducts[productUSD];
-                        if (productExchange.Symbol.Equals(productUSD))
+                        if (allFilled)
                         {
-                            size = dUSD / (double)productExchange.Last;
+                            State = StrategyState.Inactive;
+                            DctLegToOrder.Clear();
                         }
-                    }
-
-                    price = (double)(side == OrderSide.Buy ? product.Bid : product.Ask);
-                    dctLegs[MAKER_LEG].Item2.Exchange.trade(this, side, product, Math.Round(size, product.PrecisionSize), Math.Round(price, product.PrecisionPrice));
-
-                }
-
-                if (State == StrategyState.Taker)
-                {
-                    // check for filled order, if so go to waiting
-                    // check for orders not at mid, if so cancel and replace
-                    double dUSD = server.TradeUSD.GetValueOrDefault();
-                    OrderSide side = dctLegs[currentLeg].Item1;
-                    CProduct product = dctLegs[currentLeg].Item2;
-                    Double size = 0.00001;
-                    Double price;
-
-                    if (product.Symbol.EndsWith("USD") || product.Symbol.EndsWith("USDT"))
-                    {
-                        size = dUSD / (double)product.Last;
-                    }
-                    else if (product.Symbol.StartsWith("USD") || product.Symbol.StartsWith("USDT"))
-                    {
-                        if (side == OrderSide.Buy)
-                        {
-                            size = dUSD;
-                        }
-                        else
-                        {
-                            size = dUSD / (double)product.Last;
-                        }
-                    }
-                    else
-                    {
-                        String productUSD = product.Symbol.Substring(0, 3);
-                        if (product.Exchange is CKuCoin)
-                            productUSD += "-";
-                        productUSD += "USDT";
-                        CProduct productExchange = DctProducts[productUSD];
-                        if (productExchange.Symbol.Equals(productUSD))
-                        {
-                            size = dUSD / (double)productExchange.Last;
-                        }
-                    }
-
-                    price = ((Double)product.Bid + (Double)product.Ask) / 2.0;
-                    dctLegs[currentLeg].Item2.Exchange.trade(this, side, product, Math.Round(size, product.PrecisionSize), Math.Round(price, product.PrecisionPrice));
-                    if (++currentLeg > dctLegs.Count)
-                        currentLeg = 1;
-
+                        break;
                 }
             }
             catch (Exception ex)
@@ -287,8 +262,8 @@ namespace CCTriArb
 
         public void tradeNext(ServerType serverType, Double dUSD, Boolean active)
         {
-            OrderSide side = dctLegs[currentLeg].Item1;
-            CProduct product = dctLegs[currentLeg].Item2;
+            OrderSide side = dctLegs[CurrentLeg].Item1;
+            CProduct product = dctLegs[CurrentLeg].Item2;
             Double size = 0.00001;
             Double price;
 
@@ -332,9 +307,9 @@ namespace CCTriArb
             {
                 price = (Double)product.Ask;
             }
-            dctLegs[currentLeg].Item2.Exchange.trade(this, side, product, Math.Round(size, product.PrecisionSize), Math.Round(price, product.PrecisionPrice));
-            if (++currentLeg > dctLegs.Count)
-                currentLeg = 1;
+            dctLegs[CurrentLeg].Item2.Exchange.trade(this, CurrentLeg, side, product, Math.Round(size, product.PrecisionSize), Math.Round(price, product.PrecisionPrice));
+            if (++CurrentLeg > dctLegs.Count)
+                CurrentLeg = 1;
         }
 
         public override string ToString()

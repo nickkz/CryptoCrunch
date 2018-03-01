@@ -27,16 +27,16 @@ namespace CCTriArb
         public string AccountRequest { get; set; }
         public string OrderRequest { get; set; }
         public string TickRequest { get; set; }
-        protected CStrategyServer Server { get; set; }
+        protected CStrategyServer server;
         #endregion
 
         #region Constructor
-        public CExchange(CStrategyServer server)
+        public CExchange()
         {
             dctProducts = new Dictionary<String, CProduct>();
             dctAccounts = new Dictionary<String, String>();
             dctPositions = new Dictionary<String, double>();
-            this.Server = server;
+            this.server = CStrategyServer.Server;
         }
         #endregion
 
@@ -44,7 +44,7 @@ namespace CCTriArb
         public abstract void pollTicks(object source, ElapsedEventArgs e);
         public abstract void pollOrders(object source, ElapsedEventArgs e);
         public abstract void getAccounts();
-        public abstract void trade(CStrategy strategy, OrderSide? side, CProduct product, Double size, Double price);
+        public abstract void trade(CStrategy strategy, int? leg, OrderSide? side, CProduct product, Double size, Double price);
         public abstract void cancel(String orderID);
         public abstract void cancelAll();
 

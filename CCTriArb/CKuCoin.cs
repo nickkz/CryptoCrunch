@@ -7,13 +7,14 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using System.Timers;
+using System.Windows.Threading;
 using Newtonsoft.Json;
 
 namespace CCTriArb
 {
     public class CKuCoin : CExchange
     {
-        public CKuCoin(CStrategyServer server) : base(server)
+        public CKuCoin() : base()
         {
             BaseURL = "https://api.kucoin.com/v1/open/tick";
             Name = "KuCoin";
@@ -36,7 +37,7 @@ namespace CCTriArb
             {
                 String API_KEY = Properties.Settings.Default.KUCOIN_API_KEY;
                 String API_SECRET = Properties.Settings.Default.KUCOIN_API_SECRET;
-                ServerType serverType = Server.serverType;
+                ServerType serverType = server.serverType;
                 Uri baseAddress;
                 switch (serverType)
                 {
@@ -64,8 +65,7 @@ namespace CCTriArb
                         {
                             endpoint = "/v1/order/dealt";
                             parameters = new Dictionary<string, string> {
-                                { "symbol", product.Symbol }//,
-                                //{ "limit", "20" }
+                                { "symbol", product.Symbol }
                             };
                         }
                         else
@@ -133,10 +133,10 @@ namespace CCTriArb
                                     Double amount = orderDealt.amount;
                                     Double dealValue = orderDealt.dealValue;
                                     COrder order = null;
-                                    if (Server.dctIdToOrder.ContainsKey(oid))
-                                        order = Server.dctIdToOrder[oid];
-                                    else if (Server.dctIdToOrder.ContainsKey(orderOid))
-                                        order = Server.dctIdToOrder[orderOid];
+                                    if (server.dctIdToOrder.ContainsKey(oid))
+                                        order = server.dctIdToOrder[oid];
+                                    else if (server.dctIdToOrder.ContainsKey(orderOid))
+                                        order = server.dctIdToOrder[orderOid];
 
                                     /*
                                     if (order == null)
@@ -193,9 +193,9 @@ namespace CCTriArb
                                                 }
                                             }
 
-                                            if (orderID != null && Server.dctIdToOrder.ContainsKey(orderID))
+                                            if (orderID != null && server.dctIdToOrder.ContainsKey(orderID))
                                             {
-                                                COrder order = Server.dctIdToOrder[orderID];
+                                                COrder order = server.dctIdToOrder[orderID];
                                                 if (filled > 0)
                                                 {
                                                     order.Filled = filled;
@@ -218,7 +218,7 @@ namespace CCTriArb
             }
             catch (Exception ex)
             {
-                Server.AddLog(ex.Message);
+                server.AddLog(ex.Message);
             }
             pollingOrders = false;
         }
@@ -256,18 +256,18 @@ namespace CCTriArb
                 }
                 catch (Exception ex)
                 {
-                    Server.AddLog(ex.Message);
+                    server.AddLog(ex.Message);
                 }
             }
             pollingTicks = false;
         }
 
-        public override async void trade(CStrategy strategy, OrderSide? side, CProduct product, Double size, Double price)
+        public override async void trade(CStrategy strategy, int? leg, OrderSide? side, CProduct product, Double size, Double price)
         {
             try
             {
                 Uri baseAddress;
-                switch (Server.serverType)
+                switch (server.serverType)
                 {
                     case ServerType.Debugging:
                         baseAddress = new Uri("https://private-f6a2b2-kucoinapidocs.apiary-proxy.com");
@@ -345,37 +345,46 @@ namespace CCTriArb
                 }
                 catch (Exception ex)
                 {
-                    Server.AddLog(ex.Message);
+                    server.AddLog(ex.Message);
                     orderID = "";
                 }
-                COrder order = new COrder(orderID);
-                order.Product = product;
-                order.Side = side.GetValueOrDefault();
-                order.Size = size;
-                order.Price = price;
-                String orderStatus = orderData.msg.ToString();
-                if (orderStatus.Equals("OK") || orderStatus.Equals("Sent"))
-                    order.Status = "Sent";
-                else
-                    order.Status = "Unknown";
+                if (!orderID.Equals(""))
+                {
+                    COrder order = new COrder(orderID);
+                    order.Product = product;
+                    order.Side = side.GetValueOrDefault();
+                    order.Size = size;
+                    order.Price = price;
+                    String orderStatus = orderData.msg.ToString();
+                    if (orderStatus.Equals("OK") || orderStatus.Equals("Sent"))
+                        order.Status = "Sent";
+                    else
+                        order.Status = "Unknown";
 
-                order.Strategy = strategy;
-                order.Exchange = this;
-                Double timeStamp = orderData.timestamp;
-                order.TimeStampSent = CHelper.ConvertFromUnixTimestamp(timeStamp);
+                    order.Strategy = strategy;
+                    order.Exchange = this;
+                    Double timeStamp = orderData.timestamp;
+                    order.TimeStampSent = CHelper.ConvertFromUnixTimestamp(timeStamp);
 
-                // add order to both Strategy orders and global Orders
-                Server.colOrders.Add(order);
-                Server.dctIdToOrder.Add(orderID, order);
-                strategy.DctOrders.Add(orderID, order);
+                    server.AddLog("Created Order " + this.Name + " " + orderID + " " + product + " " + side + " " + size + " " + price);
 
-                order.updateGUI();
+                    // add order to global Orders
+                    server.colOrders.Add(order);
+                    server.dctIdToOrder[orderID] = order;
 
-                Server.AddLog(json);
+                    // add order to strategy orders
+                    strategy.DctOrders[orderID] = order;
+                    if (leg != null)
+                        strategy.DctLegToOrder[(int)leg] = order;
+
+                    // cleanup
+                    order.updateGUI();
+                    server.AddLog(json);
+                }
             }
             catch (Exception ex)
             {
-                Server.AddLog(ex.Message);
+                server.AddLog(ex.Message);
             }
         }
 
@@ -384,7 +393,7 @@ namespace CCTriArb
             try
             {
                 Uri baseAddress;
-                switch (Server.serverType)
+                switch (server.serverType)
                 {
                     case ServerType.Debugging:
                         baseAddress = new Uri("https://private-f6a2b2-kucoinapidocs.apiary-proxy.com");
@@ -405,13 +414,13 @@ namespace CCTriArb
 
                 HttpClient httpClient = new HttpClient();
 
-                COrder order = Server.dctIdToOrder[orderID];
+                COrder order = server.dctIdToOrder[orderID];
                 CProduct product = order.Product;
 
                 Dictionary<string, string> parameters = new Dictionary<string, string> {
-                    { "symbol", product.Symbol },
                     { "orderOid", orderID },
-                    { "type", order.Side.ToString() }
+                    { "symbol", product.Symbol },
+                    { "type", order.Side.ToString().ToUpper() }
                 };
 
                 HttpContent queryString = new FormUrlEncodedContent(parameters);
@@ -465,11 +474,11 @@ namespace CCTriArb
                 order.Status = "Cancelled";
                 order.TimeStampLastUpdate = DateTime.Now;
                 order.updateGUI();
-                Server.AddLog(json);
+                server.AddLog(json);
             }
             catch (Exception ex)
             {
-                Server.AddLog(ex.Message);
+                server.AddLog(ex.Message);
             }
         }
 
@@ -478,7 +487,7 @@ namespace CCTriArb
             try
             {
                 Uri baseAddress;
-                switch (Server.serverType)
+                switch (server.serverType)
                 {
                     case ServerType.Debugging:
                         baseAddress = new Uri("https://private-f6a2b2-kucoinapidocs.apiary-proxy.com");
@@ -499,7 +508,7 @@ namespace CCTriArb
 
                 HttpClient httpClient = new HttpClient();
 
-                foreach (CProduct product in Server.dctProducts.Values)
+                foreach (CProduct product in server.dctProducts.Values)
                 {
                     Dictionary<string, string> parameters = new Dictionary<string, string> {
                         { "symbol", product.Symbol }
@@ -552,7 +561,7 @@ namespace CCTriArb
                     dynamic cancelorderData = JsonConvert.DeserializeObject(json);
                     var orders = cancelorderData.data;
 
-                    foreach (COrder order in Server.colOrders)
+                    foreach (COrder order in server.colOrders)
                     {
                         if (order.Product.Equals(product))
                         {
@@ -564,12 +573,12 @@ namespace CCTriArb
                             }
                         }
                     }
-                    Server.AddLog(json);
+                    server.AddLog(json);
                 }
             }
             catch (Exception ex)
             {
-                Server.AddLog(ex.Message);
+                server.AddLog(ex.Message);
             }
         }
     }

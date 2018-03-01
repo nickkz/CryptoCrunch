@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
@@ -11,22 +12,23 @@ namespace CCTriArb
     public abstract class CStrategy : INotifyPropertyChanged
     {
         protected CStrategyServer server;
-        protected int currentLeg;
         protected Dictionary<int, Tuple<OrderSide, CProduct>> dctLegs;
-        public Dictionary<String, CProduct> DctProducts { get; set; }
-        public Dictionary<String, COrder> DctOrders { get; set; }
-        public Dictionary<Int64, COrder> DctLegToOrder { get; set; }
+        public ConcurrentDictionary<String, CProduct> DctProducts { get; set; }
+        public ConcurrentDictionary<String, COrder> DctOrders { get; set; }
+        public ConcurrentDictionary<int, COrder> DctLegToOrder { get; set; }
         protected Boolean processStrategy;
 
-        protected CStrategy(CStrategyServer server, Dictionary<int, Tuple<OrderSide, CProduct>> dctLegs)
+        public int CurrentLeg { get; set; }
+
+        protected CStrategy(Dictionary<int, Tuple<OrderSide, CProduct>> dctLegs)
         {
-            this.server = server;
+            this.server = CStrategyServer.Server;
             this.dctLegs = dctLegs;
             processStrategy = false;
-            currentLeg = 1;
-            DctProducts = new Dictionary<String, CProduct>();
-            DctOrders = new Dictionary<String, COrder>();
-            DctLegToOrder = new Dictionary<Int64, COrder>();
+            CurrentLeg = 1;
+            DctProducts = new ConcurrentDictionary<String, CProduct>();
+            DctOrders = new ConcurrentDictionary<String, COrder>();
+            DctLegToOrder = new ConcurrentDictionary<int, COrder>();
 
             // link everything up
             for (int i = 1; i <= dctLegs.Count; i++)
@@ -37,7 +39,7 @@ namespace CCTriArb
                 // assign Product to Global Product Collection
                 CProduct product = dctLegs[i].Item2;
                 if (!DctProducts.ContainsKey(product.Symbol))
-                    DctProducts.Add(product.Symbol, product);
+                    DctProducts[product.Symbol] = product;
 
                 // assign Product to Exchange Product Collection 
                 if (!dctLegs[i].Item2.Exchange.dctProducts.ContainsKey(product.Symbol))

@@ -47,6 +47,10 @@ namespace CCTriArb
         }
         public event PropertyChangedEventHandler PropertyChanged;
 
+        public void updateGrid(String field)
+        {
+            PropertyChanged(this, new PropertyChangedEventArgs(field));
+        }
 
         public virtual void updateGUI()
         {

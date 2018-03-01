@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Timers;
 using System.Windows;
@@ -22,10 +23,10 @@ namespace CCTriArb
     public partial class CCTriArbMain : Window
     {
         CStrategyServer server;
-        public CCTriArbMain(CStrategyServer server)
+        public CCTriArbMain()
         {
             InitializeComponent();
-            this.server = server;
+            this.server = CStrategyServer.Server;
         }
 
         public void AddLog(String logText)
@@ -42,6 +43,7 @@ namespace CCTriArb
             server.IsActive = false;
             Close();
         }
+
 
         private void frmTriArbMain_Loaded(object sender, RoutedEventArgs e)
         {
@@ -93,10 +95,10 @@ namespace CCTriArb
 
         private void btnTradeSingle_Click(object sender, RoutedEventArgs e)
         {
-            int selectedRow = dgStrategies.SelectedIndex;
-            if (selectedRow > -1)
+
+            foreach (CTriArb triarb in dgStrategies.SelectedItems)
             {
-                CTriArb triarb = server.colStrategies[selectedRow];
+                AddLog(triarb + " Activated!");
                 triarb.activateStrategy();
             }
         }

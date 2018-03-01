@@ -16,7 +16,7 @@ namespace CCTriArb
     {
         ExchangeBinanceAPI api;
 
-        public CBinance(CStrategyServer server) : base(server)
+        public CBinance() : base()
         {
             api = new ExchangeBinanceAPI();
             BaseURL = "https://api.kucoin.com/v1/open/tick";
@@ -45,7 +45,7 @@ namespace CCTriArb
             {
                 String API_KEY = Properties.Settings.Default.KUCOIN_API_KEY;
                 String API_SECRET = Properties.Settings.Default.KUCOIN_API_SECRET;
-                ServerType serverType = Server.serverType;
+                ServerType serverType = server.serverType;
                 Uri baseAddress;
                 switch (serverType)
                 {
@@ -142,10 +142,10 @@ namespace CCTriArb
                                     Double amount = orderDealt.amount;
                                     Double dealValue = orderDealt.dealValue;
                                     COrder order = null;
-                                    if (Server.dctIdToOrder.ContainsKey(oid))
-                                        order = Server.dctIdToOrder[oid];
-                                    else if (Server.dctIdToOrder.ContainsKey(orderOid))
-                                        order = Server.dctIdToOrder[orderOid];
+                                    if (server.dctIdToOrder.ContainsKey(oid))
+                                        order = server.dctIdToOrder[oid];
+                                    else if (server.dctIdToOrder.ContainsKey(orderOid))
+                                        order = server.dctIdToOrder[orderOid];
 
                                     /*
                                     if (order == null)
@@ -202,9 +202,9 @@ namespace CCTriArb
                                                 }
                                             }
 
-                                            if (orderID != null && Server.dctIdToOrder.ContainsKey(orderID))
+                                            if (orderID != null && server.dctIdToOrder.ContainsKey(orderID))
                                             {
-                                                COrder order = Server.dctIdToOrder[orderID];
+                                                COrder order = server.dctIdToOrder[orderID];
                                                 if (filled > 0)
                                                 {
                                                     order.Filled = filled;
@@ -227,7 +227,7 @@ namespace CCTriArb
             }
             catch (Exception ex)
             {
-                Server.AddLog(ex.Message);
+                server.AddLog(ex.Message);
             }
             pollingOrders = false;
         }
@@ -258,13 +258,13 @@ namespace CCTriArb
                 }
                 catch (Exception ex)
                 {
-                    Server.AddLog(ex.Message);
+                    server.AddLog(ex.Message);
                 }
             }
             pollingTicks = false;
         }
 
-        public override void trade(CStrategy strategy, OrderSide? side, CProduct product, Double size, Double price)
+        public override void trade(CStrategy strategy, int? leg, OrderSide? side, CProduct product, Double size, Double price)
         {
             try
             {
@@ -272,7 +272,7 @@ namespace CCTriArb
                 String API_SECRET = Properties.Settings.Default.BINANCE_API_SECRET;
 
                 api.LoadAPIKeysUnsecure(API_KEY, API_SECRET);
-                Server.AddLog("Setting up " + side + " " + product.Symbol + " Trade on " + api.Name);
+                server.AddLog("Setting up " + side + " " + product.Symbol + " Trade on " + api.Name);
 
                 ExchangeTicker ticker = api.GetTicker(product.Symbol);
                 ExchangeOrderResult result = api.PlaceOrder(new ExchangeOrderRequest
@@ -286,10 +286,7 @@ namespace CCTriArb
                 System.Threading.Thread.Sleep(100);
 
                 String orderID = result.OrderId;
-                Server.AddLog("Calling Order OrderID: " + result.OrderId + " Date: " + result.OrderDate + " Result: " + result.Result);
-                //result = api.GetOrderDetails(result.OrderId);
-                //Server.AddLog("After calling GetOrderDetails OrderID: " + result.OrderId + " Date: " + result.OrderDate + " Result: " + result.Result);
-                //Server.AddLog("Placed an order on " + Name + " for 0.0015 bitcoin at {0} USD. Status is {1}. Order id is {2}." + ticker.Ask + result.Result + result.OrderId);
+                server.AddLog("Calling Order OrderID: " + result.OrderId + " Date: " + result.OrderDate + " Result: " + result.Result);
 
                 COrder order = new COrder(orderID);
                 order.Product = product;
@@ -307,14 +304,14 @@ namespace CCTriArb
                 order.TimeStampSent = result.OrderDate;
 
                 // add order to both Strategy orders and global Orders
-                Server.colOrders.Add(order);
-                Server.dctIdToOrder.Add(orderID, order);
-                strategy.DctOrders.Add(orderID, order);
+                server.colOrders.Add(order);
+                server.dctIdToOrder.AddOrUpdate(orderID, order, (key, oldValue) => order);
+                strategy.DctOrders.AddOrUpdate(orderID, order, (key, oldValue) => order);
                 order.updateGUI();
             }
             catch (Exception ex)
             {
-                Server.AddLog(ex.Message);
+                server.AddLog(ex.Message);
             }
         }
 
@@ -323,7 +320,7 @@ namespace CCTriArb
             try
             {
                 Uri baseAddress;
-                switch (Server.serverType)
+                switch (server.serverType)
                 {
                     case ServerType.Debugging:
                         baseAddress = new Uri("https://private-f6a2b2-kucoinapidocs.apiary-proxy.com");
@@ -344,7 +341,7 @@ namespace CCTriArb
 
                 HttpClient httpClient = new HttpClient();
 
-                foreach (CProduct product in Server.dctProducts.Values)
+                foreach (CProduct product in server.dctProducts.Values)
                 {
                     Dictionary<string, string> parameters = new Dictionary<string, string> {
                         { "symbol", product.Symbol }
@@ -397,7 +394,7 @@ namespace CCTriArb
                     dynamic cancelorderData = JsonConvert.DeserializeObject(json);
                     var orders = cancelorderData.data;
 
-                    foreach (COrder order in Server.colOrders)
+                    foreach (COrder order in server.colOrders)
                     {
                         if (order.Product.Equals(product))
                         {
@@ -409,12 +406,12 @@ namespace CCTriArb
                             }
                         }
                     }
-                    Server.AddLog(json);
+                    server.AddLog(json);
                 }
             }
             catch (Exception ex)
             {
-                Server.AddLog(ex.Message);
+                server.AddLog(ex.Message);
             }
         }
 

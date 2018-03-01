@@ -1,4 +1,6 @@
-﻿using System;
+﻿using Collections;
+using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
@@ -6,17 +8,22 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Timers;
+using System.Windows;
+using System.Windows.Data;
+using System.Windows.Threading;
 
 namespace CCTriArb
 {
 
     public class CStrategyServer
     {
-        public ObservableCollection<CTriArb> colStrategies;
+        public MTObservableCollection<CTriArb> colStrategies;
+        public MTObservableCollection<COrder> colOrders;
+        public ConcurrentDictionary<String, COrder> dctIdToOrder;
+
         public Dictionary<String, CExchange> dctExchanges;
         public Dictionary<String, CProduct> dctProducts;
-        public ObservableCollection<COrder> colOrders;
-        public Dictionary<String, COrder> dctIdToOrder;
+
         public CCTriArbMain gui;
         public ServerType serverType = ServerType.Debugging;
 
@@ -24,13 +31,23 @@ namespace CCTriArb
         public Double? TradeUSD { get; set; }
         public Double? MinProfit { get; set; }
 
+        public SynchronizationContext UIContext { get; set; }
+
+        public static CStrategyServer Server
+        {
+            get;
+            private set;
+        }
+
         public CStrategyServer()
         {
+            Server = this;
+
             IsActive = true;
             TradeUSD = 1.0;
             MinProfit = 0.002;
-            CExchange kuExchange = new CKuCoin(this);
-            CExchange beExchange = new CBinance(this);
+            CExchange kuExchange = new CKuCoin();
+            CExchange beExchange = new CBinance();
 
             Dictionary<int, Tuple<OrderSide, CProduct>> dctLegs_ku_USD_BTC_ETH = new Dictionary<int, Tuple<OrderSide, CProduct>>();
             Dictionary<int, Tuple<OrderSide, CProduct>> dctLegs_ku_USD_ETH_BTC = new Dictionary<int, Tuple<OrderSide, CProduct>>();
@@ -66,18 +83,20 @@ namespace CCTriArb
             dctLegs_be_USD_ETH_BTC.Add(2, new Tuple<OrderSide, CProduct>(OrderSide.Sell, product_be_ETH_BTC));
             dctLegs_be_USD_ETH_BTC.Add(3, new Tuple<OrderSide, CProduct>(OrderSide.Sell, product_be_BTC_USDT));
 
-            colStrategies = new ObservableCollection<CTriArb>();
-            colStrategies.Add(new CTriArb(this, dctLegs_ku_USD_BTC_ETH));
-            colStrategies.Add(new CTriArb(this, dctLegs_ku_USD_ETH_BTC));
-            colStrategies.Add(new CTriArb(this, dctLegs_be_USD_BTC_ETH));
-            colStrategies.Add(new CTriArb(this, dctLegs_be_USD_ETH_BTC));
+            //Dispatcher dispatcher = Dispatcher.CurrentDispatcher;
+
+            colStrategies = new MTObservableCollection<CTriArb>();
+            colStrategies.Add(new CTriArb(dctLegs_ku_USD_BTC_ETH));
+            colStrategies.Add(new CTriArb(dctLegs_ku_USD_ETH_BTC));
+            colStrategies.Add(new CTriArb(dctLegs_be_USD_BTC_ETH));
+            colStrategies.Add(new CTriArb(dctLegs_be_USD_ETH_BTC));
+
+            colOrders = new MTObservableCollection<COrder>();
+            dctIdToOrder = new ConcurrentDictionary<String, COrder>();
 
             dctExchanges = new Dictionary<String, CExchange>();
             dctExchanges.Add(kuExchange.Name, kuExchange);
             dctExchanges.Add(beExchange.Name, beExchange);
-
-            colOrders = new ObservableCollection<COrder>();
-            dctIdToOrder = new Dictionary<String, COrder>();
 
             System.Timers.Timer timerTicks = new System.Timers.Timer(5000);
             timerTicks.Elapsed += new ElapsedEventHandler(pollTicks);
@@ -91,7 +110,6 @@ namespace CCTriArb
             timerStrategy.Elapsed += new ElapsedEventHandler(cycleStrategy);
             timerStrategy.Start();
 
-            // open gui
             openGui();
         }
 
@@ -106,7 +124,7 @@ namespace CCTriArb
             Thread newWindowThread = new Thread(new ThreadStart(() =>
             {
                 // Create and show the Window
-                gui = new CCTriArbMain(this);
+                gui = new CCTriArbMain();
                 gui.Show();
                 // Start the Dispatcher Processing
                 System.Windows.Threading.Dispatcher.Run();
@@ -119,7 +137,6 @@ namespace CCTriArb
             // Start the thread
             newWindowThread.Start();
         }
-
 
         private void pollTicks(object source, ElapsedEventArgs e)
         {
