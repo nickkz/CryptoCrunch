@@ -49,6 +49,7 @@ namespace CCTriArb
         {
             dgStrategies.DataContext = server.colStrategies;
             dgOrders.DataContext = server.colOrders;
+            dgPositions.DataContext = server.colProducts;
         }
 
         private void btnTradeNextPassive_Click(object sender, RoutedEventArgs e)
@@ -99,7 +100,7 @@ namespace CCTriArb
             foreach (CTriArb triarb in dgStrategies.SelectedItems)
             {
                 AddLog(triarb + " Activated!");
-                triarb.activateStrategy();
+                triarb.activateStrategy(false);
             }
         }
 
@@ -117,6 +118,24 @@ namespace CCTriArb
             bool parseAmount = Double.TryParse(txtMinProfit.Text, out minProfit);
             if (server != null)
                 server.MinProfit = minProfit;
+        }
+
+        private void btnTradeContinuous_Click(object sender, RoutedEventArgs e)
+        {
+            foreach (CTriArb triarb in dgStrategies.SelectedItems)
+            {
+                AddLog(triarb + " Continuous!");
+                triarb.activateStrategy(true);
+            }
+        }
+
+        private void btnCancel_Click(object sender, RoutedEventArgs e)
+        {
+            foreach (COrder order in dgOrders.SelectedItems)
+            {
+                AddLog(order + " Cancelling!");
+                order.cancel();
+            }
         }
     }
 }

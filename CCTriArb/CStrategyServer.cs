@@ -1,5 +1,4 @@
-﻿using Collections;
-using System;
+﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -20,8 +19,9 @@ namespace CCTriArb
         public MTObservableCollection<CTriArb> colStrategies;
         public MTObservableCollection<COrder> colOrders;
         public ConcurrentDictionary<String, COrder> dctIdToOrder;
-
         public Dictionary<String, CExchange> dctExchanges;
+
+        public MTObservableCollection<CProduct> colProducts;
         public Dictionary<String, CProduct> dctProducts;
 
         public CCTriArbMain gui;
@@ -54,7 +54,9 @@ namespace CCTriArb
             Dictionary<int, Tuple<OrderSide, CProduct>> dctLegs_be_USD_BTC_ETH = new Dictionary<int, Tuple<OrderSide, CProduct>>();
             Dictionary<int, Tuple<OrderSide, CProduct>> dctLegs_be_USD_ETH_BTC = new Dictionary<int, Tuple<OrderSide, CProduct>>();
 
+            colProducts = new MTObservableCollection<CProduct>();
             dctProducts = new Dictionary<String, CProduct>();
+            CProduct product_ku_USDT = new CProduct(kuExchange, "USDT", 6, 8);
             CProduct product_ku_BTC_USDT = new CProduct(kuExchange, "BTC-USDT", 6, 8);
             CProduct product_ku_ETH_BTC = new CProduct(kuExchange, "ETH-BTC", 6, 6);
             CProduct product_ku_ETH_USDT = new CProduct(kuExchange, "ETH-USDT", 6, 6);
@@ -62,12 +64,25 @@ namespace CCTriArb
             CProduct product_be_ETH_BTC = new CProduct(beExchange, "ETHBTC", 3, 6);
             CProduct product_be_ETH_USDT = new CProduct(beExchange, "ETHUSDT", 4, 6);
 
+            dctProducts.Add(product_ku_USDT.Symbol, product_ku_USDT);
             dctProducts.Add(product_ku_BTC_USDT.Symbol, product_ku_BTC_USDT);
             dctProducts.Add(product_ku_ETH_BTC.Symbol, product_ku_ETH_BTC);
             dctProducts.Add(product_ku_ETH_USDT.Symbol, product_ku_ETH_USDT);
             dctProducts.Add(product_be_BTC_USDT.Symbol, product_be_BTC_USDT);
             dctProducts.Add(product_be_ETH_BTC.Symbol, product_be_ETH_BTC);
             dctProducts.Add(product_be_ETH_USDT.Symbol, product_be_ETH_USDT);
+
+            // Global products contain "USD" e.g. ETH-USD
+            // Strategy Products contain only tradeable e.g. ETH-BTC
+            // Exchange Products contain everything
+
+            foreach (String symbol in dctProducts.Keys)
+            {
+                CProduct product = dctProducts[symbol];
+                if (symbol.Contains("USD"))
+                    colProducts.Add(product);
+                product.Exchange.dctProducts.Add(symbol, product);
+            }
 
             dctLegs_ku_USD_BTC_ETH.Add(1, new Tuple<OrderSide, CProduct>(OrderSide.Buy, product_ku_BTC_USDT));
             dctLegs_ku_USD_BTC_ETH.Add(2, new Tuple<OrderSide, CProduct>(OrderSide.Buy, product_ku_ETH_BTC));
@@ -105,6 +120,10 @@ namespace CCTriArb
             System.Timers.Timer timerOrders = new System.Timers.Timer(5000);
             timerOrders.Elapsed += new ElapsedEventHandler(pollOrders);
             timerOrders.Start();
+
+            System.Timers.Timer timerPositions = new System.Timers.Timer(5000);
+            timerPositions.Elapsed += new ElapsedEventHandler(pollPositions);
+            timerPositions.Start();
 
             System.Timers.Timer timerStrategy = new System.Timers.Timer(5000);
             timerStrategy.Elapsed += new ElapsedEventHandler(cycleStrategy);
@@ -151,6 +170,14 @@ namespace CCTriArb
             foreach (var exchange in dctExchanges.Values)
             {
                 exchange.pollOrders(source, e);
+            }
+        }
+
+        private void pollPositions(object source, ElapsedEventArgs e)
+        {
+            foreach (var exchange in dctExchanges.Values)
+            {
+                exchange.pollPositions(source, e);
             }
         }
 

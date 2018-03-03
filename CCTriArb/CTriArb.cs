@@ -10,20 +10,11 @@ namespace CCTriArb
     public class CTriArb : CStrategy
     {
         private const int MAKER_LEG = 2;
-        public enum StrategyState
-        {
-            Inactive,
-            Active,
-            MakerSend,
-            MakerProcess,
-            TakerSend,
-            TakerProcess
-        }
-        public StrategyState State { get; set; }
 
         internal CTriArb(Dictionary<int, Tuple<OrderSide, CProduct>> dctLegs) : base(dctLegs)
         {
             State = StrategyState.Inactive;
+            Continuous = false;
         }
 
         public CExchange Exchange
@@ -33,6 +24,8 @@ namespace CCTriArb
                 return dctLegs[1].Item2.Exchange;
             }
         }
+
+        public Boolean Continuous { get; set; }
 
         public Double? ProfitAAA {
             get {
@@ -125,10 +118,14 @@ namespace CCTriArb
             base.updateGUI();
         }
 
-        internal void activateStrategy()
+        internal void activateStrategy(Boolean continuous)
         {
             Double profitUSD = server.TradeUSD.GetValueOrDefault() * server.MinProfit.GetValueOrDefault();
-            State = StrategyState.Active;
+            Continuous = continuous;
+            if (Continuous)
+                State = StrategyState.Continuous;
+            else
+                State = StrategyState.Active;
         }
 
         internal Double GetSize(OrderSide side, CProduct product)
@@ -183,6 +180,7 @@ namespace CCTriArb
                         break;
 
                     case StrategyState.Active:
+                    case StrategyState.Continuous:
                         if (Profit >= profitUSD)
                         {
                             State = StrategyState.MakerSend;
@@ -211,7 +209,7 @@ namespace CCTriArb
                         else if (Profit < profitUSD)
                         {
                             order.cancel();
-                            State = StrategyState.Active;
+                            State = Continuous ? StrategyState.Continuous : StrategyState.Active;
                             DctLegToOrder.Clear();
                         }
                         break;
@@ -219,17 +217,18 @@ namespace CCTriArb
                     case StrategyState.TakerSend:
                         for (int currentLeg = 1; currentLeg <= dctLegs.Count; currentLeg++)
                         {
-                            if (currentLeg != MAKER_LEG)
+                            if (!DctLegToOrder.ContainsKey(currentLeg))
                             {
                                 OrderSide sideTaker = dctLegs[currentLeg].Item1;
                                 CProduct productTaker = dctLegs[currentLeg].Item2;
                                 Double sizeTaker = GetSize(sideTaker, productTaker);
                                 Double priceTaker = ((Double)productTaker.Bid + (Double)productTaker.Ask) / 2.0;
                                 CurrentLeg = currentLeg;
-                                dctLegs[CurrentLeg].Item2.Exchange.trade(this, currentLeg, sideTaker, productTaker, Math.Round(sizeTaker, productTaker.PrecisionSize), Math.Round(priceTaker, productTaker.PrecisionPrice));
+                                dctLegs[currentLeg].Item2.Exchange.trade(this, currentLeg, sideTaker, productTaker, Math.Round(sizeTaker, productTaker.PrecisionSize), Math.Round(priceTaker, productTaker.PrecisionPrice));
                             }
                         }
-                        State = StrategyState.TakerProcess;
+                        if (DctLegToOrder.Count >= 3)
+                            State = StrategyState.TakerProcess;
                         break;
 
                     case StrategyState.TakerProcess:
@@ -247,7 +246,10 @@ namespace CCTriArb
                         }
                         if (allFilled)
                         {
-                            State = StrategyState.Inactive;
+                            if (Continuous)
+                                State = StrategyState.Continuous;
+                            else
+                                State = StrategyState.Inactive;
                             DctLegToOrder.Clear();
                         }
                         break;

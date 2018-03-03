@@ -20,6 +20,18 @@ namespace CCTriArb
 
         public int CurrentLeg { get; set; }
 
+        public enum StrategyState
+        {
+            Inactive,
+            Active,
+            Continuous,
+            MakerSend,
+            MakerProcess,
+            TakerSend,
+            TakerProcess
+        }
+        public StrategyState State { get; set; }
+
         protected CStrategy(Dictionary<int, Tuple<OrderSide, CProduct>> dctLegs)
         {
             this.server = CStrategyServer.Server;
@@ -36,7 +48,7 @@ namespace CCTriArb
                 // assign Strategy to Leg
                 dctLegs[i].Item2.colStrategy.Add(this);
 
-                // assign Product to Global Product Collection
+                // assign Product to Strategy Product Collection
                 CProduct product = dctLegs[i].Item2;
                 if (!DctProducts.ContainsKey(product.Symbol))
                     DctProducts[product.Symbol] = product;

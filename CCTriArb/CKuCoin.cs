@@ -26,20 +26,12 @@ namespace CCTriArb
             //throw new NotImplementedException();
         }
 
-        public override async void pollOrders(object source, ElapsedEventArgs e)
+        private HttpRequestMessage KuCoinPrivate(String endpoint, Dictionary<string, string> parameters, HttpMethod method)
         {
-            if (pollingOrders)
-                return;
-            else
-                pollingOrders = true;
-
             try
             {
-                String API_KEY = Properties.Settings.Default.KUCOIN_API_KEY;
-                String API_SECRET = Properties.Settings.Default.KUCOIN_API_SECRET;
-                ServerType serverType = server.serverType;
                 Uri baseAddress;
-                switch (serverType)
+                switch (server.serverType)
                 {
                     case ServerType.Debugging:
                         baseAddress = new Uri("https://private-f6a2b2-kucoinapidocs.apiary-proxy.com");
@@ -53,10 +45,68 @@ namespace CCTriArb
                         baseAddress = new Uri("https://api.kucoin.com");
                         break;
                 }
+
+                String API_KEY = Properties.Settings.Default.KUCOIN_API_KEY;
+                String API_SECRET = Properties.Settings.Default.KUCOIN_API_SECRET;
+                HttpContent queryString = new FormUrlEncodedContent(parameters);
+                String strQuery = "";
+                foreach (String param in parameters.Keys)
+                {
+                    if (strQuery.Length > 0)
+                        strQuery += "&";
+                    strQuery += (param + "=" + parameters[param]);
+                }
+
+                //splice string for signing
+                String nonce = CHelper.ConvertToUnixTimestamp().ToString();
+
+                // create APi Sign
+                String ApiForSign = endpoint + "/" + nonce + "/" + strQuery;
+                String Base64ForSign = CHelper.Base64Encode(ApiForSign);
+
+                // bytestring and hashing code
+                UTF8Encoding encoding = new System.Text.UTF8Encoding();
+                byte[] keyByte = encoding.GetBytes(API_SECRET);
+                byte[] messageBytes = encoding.GetBytes(Base64ForSign);
+                HMACSHA256 hmacsha256 = new HMACSHA256(keyByte);
+                byte[] hashmessage = hmacsha256.ComputeHash(messageBytes);
+
+                byte[] ba = hashmessage;
+                StringBuilder hex = new StringBuilder(ba.Length * 2);
+                foreach (byte b in ba)
+                    hex.AppendFormat("{0:x2}", b);
+
+                String signatureResult = hex.ToString();
+
+                // Add a new Request Message
+                HttpRequestMessage requestMessage = new HttpRequestMessage(method, baseAddress + endpoint + (strQuery.Length > 0 ? "?" + strQuery : "" ));
+
+                // Add our custom headers
+                requestMessage.Headers.Add("KC-API-SIGNATURE", signatureResult);
+                requestMessage.Headers.Add("KC-API-KEY", API_KEY);
+                requestMessage.Headers.Add("KC-API-NONCE", nonce);
+
+                return requestMessage;
+            }
+            catch (Exception ex)
+            {
+                server.AddLog(ex.Message);
+            }
+            return null;
+        }
+
+        public override async void pollOrders(object source, ElapsedEventArgs e)
+        {
+            if (pollingOrders)
+                return;
+            else
+                pollingOrders = true;
+
+            try
+            {
                 HttpClient httpClient = new HttpClient();
                 foreach (CProduct product in dctProducts.Values)
                 {
-                    
                     for (int active_dealt = 0; active_dealt < 2; active_dealt++)
                     {
                         String endpoint;
@@ -75,40 +125,7 @@ namespace CCTriArb
                                 { "symbol", product.Symbol }
                             };
                         }
-                        HttpContent queryString = new FormUrlEncodedContent(parameters);
-                        String strQuery = "";
-                        foreach (String param in parameters.Keys)
-                        {
-                            if (strQuery.Length > 0)
-                                strQuery += "&";
-                            strQuery += (param + "=" + parameters[param]);
-                        }
-
-                        //splice string for signing
-                        String nonce = CHelper.ConvertToUnixTimestamp().ToString();
-                        String ApiForSign = endpoint + "/" + nonce + "/" + strQuery;
-                        String Base64ForSign = CHelper.Base64Encode(ApiForSign);
-
-                        UTF8Encoding encoding = new System.Text.UTF8Encoding();
-                        byte[] keyByte = encoding.GetBytes(API_SECRET);
-                        byte[] messageBytes = encoding.GetBytes(Base64ForSign);
-                        HMACSHA256 hmacsha256 = new HMACSHA256(keyByte);
-                        byte[] hashmessage = hmacsha256.ComputeHash(messageBytes);
-
-                        byte[] ba = hashmessage;
-                        StringBuilder hex = new StringBuilder(ba.Length * 2);
-                        foreach (byte b in ba)
-                            hex.AppendFormat("{0:x2}", b);
-
-                        String signatureResult = hex.ToString();
-
-                        // Add a new Request Message
-                        HttpRequestMessage requestMessage = new HttpRequestMessage(HttpMethod.Get, baseAddress + endpoint + "?" + strQuery);
-
-                        // Add our custom headers
-                        requestMessage.Headers.Add("KC-API-SIGNATURE", signatureResult);
-                        requestMessage.Headers.Add("KC-API-KEY", API_KEY);
-                        requestMessage.Headers.Add("KC-API-NONCE", nonce);
+                        HttpRequestMessage requestMessage = KuCoinPrivate(endpoint, parameters, HttpMethod.Get);
 
                         // Send the request to the server
                         HttpResponseMessage response = await httpClient.SendAsync(requestMessage);
@@ -223,6 +240,74 @@ namespace CCTriArb
             pollingOrders = false;
         }
 
+        public override async void pollPositions(object source, ElapsedEventArgs e)
+        {
+            if (pollingPositions)
+                return;
+            else
+                pollingPositions = true;
+            HttpClient httpClient = new HttpClient();
+            try
+            {
+                String endpoint;
+                Dictionary<string, string> parameters;
+                endpoint = "/v1/account/balances";
+                int totalPage = 99;
+                int currentPage = 0;
+                int limit = 12;
+                while (++currentPage <= totalPage)
+                {
+                    parameters = new Dictionary<string, string> {
+                        { "limit", limit.ToString() },
+                        { "page", currentPage.ToString() },
+                    };
+                    HttpRequestMessage requestMessage = KuCoinPrivate(endpoint, parameters, HttpMethod.Get);
+
+                    // Send the request to the server
+                    HttpResponseMessage response = await httpClient.SendAsync(requestMessage);
+
+                    // Just as an example I'm turning the response into a string here
+                    string json = await response.Content.ReadAsStringAsync();
+
+                    dynamic balanceData = JsonConvert.DeserializeObject(json);
+                    var numTicks = balanceData.timestamp;
+
+                    var posixTime = DateTime.SpecifyKind(new DateTime(1970, 1, 1), DateTimeKind.Utc);
+                    //var time = posixTime.AddMilliseconds(numTicks);
+
+                    var balances = balanceData.data;
+                    if (balances != null)
+                    {
+                        var total = balances.total;
+                        var pageNos = balances.pageNos;
+                        int.TryParse(pageNos.ToString(), out totalPage);
+                        foreach (var pos in balances.datas)
+                        {
+                            var coinType = pos.coinType;
+                            var balance = pos.balance;
+                            if (coinType.ToString().Contains("USD"))
+                                server.AddLog("Found " + coinType + "!");
+                            String symbol = (coinType.ToString().Equals("USDT")) ? coinType : coinType + "-USDT";
+                            if (dctProducts.ContainsKey(symbol))
+                            {
+                                CProduct product = dctProducts[symbol];
+                                product.TimeStampLastBalance = DateTime.Now;
+                                Double dbal = 0;
+                                Double.TryParse(balance.ToString(), out dbal);
+                                product.SetBalance(dbal);
+                                product.updateGUI();
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                server.AddLog(ex.Message);
+            }
+            pollingPositions = false;
+        }
+
         public override void pollTicks(object source, ElapsedEventArgs e)
         {
             if (pollingTicks)
@@ -241,13 +326,15 @@ namespace CCTriArb
                     dynamic tickData = JsonConvert.DeserializeObject(json);
                     product.Bid = tickData.data.buy;
                     product.Ask = tickData.data.sell;
-                    product.Last = tickData.data.lastDealPrice;
+                    Decimal last;
+                    Decimal.TryParse(tickData.data.lastDealPrice.ToString(), out last);
+                    product.SetLast(last);
                     product.Volume = tickData.data.volValue;
 
                     long numTicks = tickData.data.datetime;
                     var posixTime = DateTime.SpecifyKind(new DateTime(1970, 1, 1), DateTimeKind.Utc);
                     var time = posixTime.AddMilliseconds(numTicks);
-                    product.DtUpdate = time;
+                    product.TimeStampLastTick = time;
 
                     foreach (CStrategy strategy in product.colStrategy)
                     {
@@ -266,74 +353,22 @@ namespace CCTriArb
         {
             try
             {
-                Uri baseAddress;
-                switch (server.serverType)
-                {
-                    case ServerType.Debugging:
-                        baseAddress = new Uri("https://private-f6a2b2-kucoinapidocs.apiary-proxy.com");
-                        break;
-
-                    case ServerType.Mock:
-                        baseAddress = new Uri("https://private-f6a2b2-kucoinapidocs.apiary-mock.com");
-                        break;
-
-                    default:
-                        baseAddress = new Uri("https://api.kucoin.com");
-                        break;
-                }
-
-                String API_KEY = Properties.Settings.Default.KUCOIN_API_KEY;
-                String API_SECRET = Properties.Settings.Default.KUCOIN_API_SECRET;
-                String endpoint = "/v1/order";  // API endpoint
-
+                String endpoint = "/v1/order";
                 Dictionary<string, string> parameters = new Dictionary<string, string> {
                     { "amount", size.ToString() },
                     { "price", price.ToString() },
                     { "symbol", product.Symbol },
                     { "type", side.GetValueOrDefault().ToString().ToUpper() }
                 };
-                HttpContent queryString = new FormUrlEncodedContent(parameters);
-                String strQuery = "";
-                foreach (String param in parameters.Keys)
-                {
-                    if (strQuery.Length > 0)
-                        strQuery += "&";
-                    strQuery += (param + "=" + parameters[param]);
-                }
-
-                //splice string for signing
-                String nonce = CHelper.ConvertToUnixTimestamp().ToString();
-
-                String ApiForSign = endpoint + "/" + nonce + "/" + strQuery;
-                String Base64ForSign = CHelper.Base64Encode(ApiForSign);
-
-                UTF8Encoding encoding = new System.Text.UTF8Encoding();
-                byte[] keyByte = encoding.GetBytes(API_SECRET);
-                byte[] messageBytes = encoding.GetBytes(Base64ForSign);
-                HMACSHA256 hmacsha256 = new HMACSHA256(keyByte);
-                byte[] hashmessage = hmacsha256.ComputeHash(messageBytes);
-
-                byte[] ba = hashmessage;
-                StringBuilder hex = new StringBuilder(ba.Length * 2);
-                foreach (byte b in ba)
-                    hex.AppendFormat("{0:x2}", b);
-
-                String signatureResult = hex.ToString();
+                HttpRequestMessage requestMessage = KuCoinPrivate(endpoint, parameters, HttpMethod.Post);
 
                 // Create a client
                 HttpClient httpClient = new HttpClient();
 
-                // Add a new Request Message
-                HttpRequestMessage requestMessage = new HttpRequestMessage(HttpMethod.Post, baseAddress + endpoint + "?" + strQuery);
-
-                // Add our custom headers
-                requestMessage.Headers.Add("KC-API-SIGNATURE", signatureResult);
-                requestMessage.Headers.Add("KC-API-KEY", API_KEY);
-                requestMessage.Headers.Add("KC-API-NONCE", nonce);
-
                 // Send the request to the server
                 HttpResponseMessage response = await httpClient.SendAsync(requestMessage);
 
+                // get json back
                 string json = await response.Content.ReadAsStringAsync();
 
                 // parse order String
@@ -392,85 +427,28 @@ namespace CCTriArb
         {
             try
             {
-                Uri baseAddress;
-                switch (server.serverType)
-                {
-                    case ServerType.Debugging:
-                        baseAddress = new Uri("https://private-f6a2b2-kucoinapidocs.apiary-proxy.com");
-                        break;
-
-                    case ServerType.Mock:
-                        baseAddress = new Uri("https://private-f6a2b2-kucoinapidocs.apiary-mock.com");
-                        break;
-
-                    default:
-                        baseAddress = new Uri("https://api.kucoin.com");
-                        break;
-                }
-
-                String API_KEY = Properties.Settings.Default.KUCOIN_API_KEY;
-                String API_SECRET = Properties.Settings.Default.KUCOIN_API_SECRET;
                 String endpoint = "/v1/cancel-order";  // API endpoint
-
-                HttpClient httpClient = new HttpClient();
-
                 COrder order = server.dctIdToOrder[orderID];
                 CProduct product = order.Product;
-
                 Dictionary<string, string> parameters = new Dictionary<string, string> {
                     { "orderOid", orderID },
                     { "symbol", product.Symbol },
                     { "type", order.Side.ToString().ToUpper() }
                 };
-
-                HttpContent queryString = new FormUrlEncodedContent(parameters);
-                String strQuery = "";
-                foreach (String param in parameters.Keys)
-                {
-                    if (strQuery.Length > 0)
-                        strQuery += "&";
-                    strQuery += (param + "=" + parameters[param]);
-                }
-
-                //splice string for signing
-                String nonce = CHelper.ConvertToUnixTimestamp().ToString();
-
-                String ApiForSign = endpoint + "/" + nonce + "/" + strQuery;
-                String Base64ForSign = CHelper.Base64Encode(ApiForSign);
-
-                UTF8Encoding encoding = new System.Text.UTF8Encoding();
-                byte[] keyByte = encoding.GetBytes(API_SECRET);
-                byte[] messageBytes = encoding.GetBytes(Base64ForSign);
-                HMACSHA256 hmacsha256 = new HMACSHA256(keyByte);
-                byte[] hashmessage = hmacsha256.ComputeHash(messageBytes);
-
-                byte[] ba = hashmessage;
-                StringBuilder hex = new StringBuilder(ba.Length * 2);
-                foreach (byte b in ba)
-                    hex.AppendFormat("{0:x2}", b);
-
-                String signatureResult = hex.ToString();
-
-                // Create a client
-                httpClient = new HttpClient();
-
-                // Add a new Request Message
-                HttpRequestMessage requestMessage = new HttpRequestMessage(HttpMethod.Post, baseAddress + endpoint + "?" + strQuery);
-
-                // Add our custom headers
-                requestMessage.Headers.Add("KC-API-SIGNATURE", signatureResult);
-                requestMessage.Headers.Add("KC-API-KEY", API_KEY);
-                requestMessage.Headers.Add("KC-API-NONCE", nonce);
+                HttpRequestMessage requestMessage = KuCoinPrivate(endpoint, parameters, HttpMethod.Post);
+                HttpClient httpClient = new HttpClient();
 
                 // Send the request to the server
                 HttpResponseMessage response = await httpClient.SendAsync(requestMessage);
 
+                // get back cancel message
                 string json = await response.Content.ReadAsStringAsync();
 
                 // parse order String
                 dynamic cancelorderData = JsonConvert.DeserializeObject(json);
                 var orders = cancelorderData.data;
 
+                order.Strategy.State = CStrategy.StrategyState.Inactive;
                 order.Status = "Cancelled";
                 order.TimeStampLastUpdate = DateTime.Now;
                 order.updateGUI();
@@ -486,94 +464,42 @@ namespace CCTriArb
         {
             try
             {
-                Uri baseAddress;
-                switch (server.serverType)
-                {
-                    case ServerType.Debugging:
-                        baseAddress = new Uri("https://private-f6a2b2-kucoinapidocs.apiary-proxy.com");
-                        break;
-
-                    case ServerType.Mock:
-                        baseAddress = new Uri("https://private-f6a2b2-kucoinapidocs.apiary-mock.com");
-                        break;
-
-                    default:
-                        baseAddress = new Uri("https://api.kucoin.com");
-                        break;
-                }
-
-                String API_KEY = Properties.Settings.Default.KUCOIN_API_KEY;
-                String API_SECRET = Properties.Settings.Default.KUCOIN_API_SECRET;
                 String endpoint = "/v1/order/cancel-all";  // API endpoint
-
                 HttpClient httpClient = new HttpClient();
-
                 foreach (CProduct product in server.dctProducts.Values)
                 {
-                    Dictionary<string, string> parameters = new Dictionary<string, string> {
-                        { "symbol", product.Symbol }
-                    };
-                    HttpContent queryString = new FormUrlEncodedContent(parameters);
-                    String strQuery = "";
-                    foreach (String param in parameters.Keys)
+                    if (product.Exchange.Equals(this))
                     {
-                        if (strQuery.Length > 0)
-                            strQuery += "&";
-                        strQuery += (param + "=" + parameters[param]);
-                    }
+                        Dictionary<string, string> parameters = new Dictionary<string, string> {
+                            { "symbol", product.Symbol }
+                        };
 
-                    //splice string for signing
-                    String nonce = CHelper.ConvertToUnixTimestamp().ToString();
+                        HttpRequestMessage requestMessage = KuCoinPrivate(endpoint, parameters, HttpMethod.Post);
 
-                    String ApiForSign = endpoint + "/" + nonce + "/" + strQuery;
-                    String Base64ForSign = CHelper.Base64Encode(ApiForSign);
+                        // Send the request to the server
+                        HttpResponseMessage response = await httpClient.SendAsync(requestMessage);
 
-                    UTF8Encoding encoding = new System.Text.UTF8Encoding();
-                    byte[] keyByte = encoding.GetBytes(API_SECRET);
-                    byte[] messageBytes = encoding.GetBytes(Base64ForSign);
-                    HMACSHA256 hmacsha256 = new HMACSHA256(keyByte);
-                    byte[] hashmessage = hmacsha256.ComputeHash(messageBytes);
+                        // get back message
+                        string json = await response.Content.ReadAsStringAsync();
 
-                    byte[] ba = hashmessage;
-                    StringBuilder hex = new StringBuilder(ba.Length * 2);
-                    foreach (byte b in ba)
-                        hex.AppendFormat("{0:x2}", b);
+                        // parse order String
+                        dynamic cancelorderData = JsonConvert.DeserializeObject(json);
+                        var orders = cancelorderData.data;
 
-                    String signatureResult = hex.ToString();
-
-                    // Create a client
-                    httpClient = new HttpClient();
-
-                    // Add a new Request Message
-                    HttpRequestMessage requestMessage = new HttpRequestMessage(HttpMethod.Post, baseAddress + endpoint + "?" + strQuery);
-
-                    // Add our custom headers
-                    requestMessage.Headers.Add("KC-API-SIGNATURE", signatureResult);
-                    requestMessage.Headers.Add("KC-API-KEY", API_KEY);
-                    requestMessage.Headers.Add("KC-API-NONCE", nonce);
-
-                    // Send the request to the server
-                    HttpResponseMessage response = await httpClient.SendAsync(requestMessage);
-
-                    string json = await response.Content.ReadAsStringAsync();
-
-                    // parse order String
-                    dynamic cancelorderData = JsonConvert.DeserializeObject(json);
-                    var orders = cancelorderData.data;
-
-                    foreach (COrder order in server.colOrders)
-                    {
-                        if (order.Product.Equals(product))
+                        foreach (COrder order in server.colOrders)
                         {
-                            if (!order.Status.Equals("Cancelled"))
+                            if (order.Product.Equals(product))
                             {
-                                order.Status = "Cancelled";
-                                order.TimeStampLastUpdate = DateTime.Now;
-                                order.updateGUI();
+                                if (!order.Status.Equals("Cancelled"))
+                                {
+                                    order.Status = "Cancelled";
+                                    order.TimeStampLastUpdate = DateTime.Now;
+                                    order.updateGUI();
+                                }
                             }
                         }
+                        server.AddLog(json);
                     }
-                    server.AddLog(json);
                 }
             }
             catch (Exception ex)

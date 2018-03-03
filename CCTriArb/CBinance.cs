@@ -415,5 +415,9 @@ namespace CCTriArb
             }
         }
 
+        public override void pollPositions(object source, ElapsedEventArgs e)
+        {
+            return;
+        }
     }
 }
