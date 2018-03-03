@@ -5,9 +5,9 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:CCTriArb"
         mc:Ignorable="d"
-        Title="DonkeyKong" Height="807.894" Width="1349.8" Loaded="frmTriArbMain_Loaded">
-    <Grid Margin="2,2,0,2.4" HorizontalAlignment="Left" Width="1338" RenderTransformOrigin="0.5,0.5">
-        <DataGrid AutoGenerateColumns="False" Name="dgStrategies" Margin="17,29,298,578" CanUserResizeColumns="True" CanUserAddRows="False" ItemsSource="{Binding}">
+        Title="DonkeyKong" Height="800" Width="1344.8" Loaded="frmTriArbMain_Loaded">
+    <Grid Margin="2,2,-1.6,0" HorizontalAlignment="Left" Width="1338" RenderTransformOrigin="0.5,0.5" Height="816" VerticalAlignment="Top">
+        <DataGrid AutoGenerateColumns="False" Name="dgStrategies" Margin="25,29,298,581" CanUserResizeColumns="True" CanUserAddRows="False" ItemsSource="{Binding}">
             <DataGrid.Columns>
                 <DataGridTextColumn Header="Pri Exchange" Width="90" Binding="{Binding Exchange,Mode=OneWay}" />
                 <DataGridTextColumn Header="State" Width="90" Binding="{Binding State,Mode=OneWay}" />
@@ -23,12 +23,13 @@
                 <DataGridTextColumn Header="Profit TMT" Width="70" Binding="{Binding Profit,StringFormat=N4,Mode=OneWay}" />
             </DataGrid.Columns>
         </DataGrid>
-        <Label Content="Strategies" HorizontalAlignment="Left" Margin="8,4,0,0" VerticalAlignment="Top"/>
-        <DataGrid AutoGenerateColumns="False" HorizontalAlignment="Left" Name="dgOrders" Height="167" Margin="20,245,0,0" VerticalAlignment="Top" Width="1020" CanUserResizeColumns="True" CanUserAddRows="False" ItemsSource="{Binding}">
+        <Label Content="Strategies" HorizontalAlignment="Left" Margin="20,4,0,0" VerticalAlignment="Top"/>
+        <DataGrid AutoGenerateColumns="False" HorizontalAlignment="Left" Name="dgOrders" Height="167" Margin="20,259,0,0" VerticalAlignment="Top" Width="1020" CanUserResizeColumns="True" CanUserAddRows="False" ItemsSource="{Binding}">
             <DataGrid.Columns>
                 <DataGridTextColumn Header="OrderID" Width="60" Binding="{Binding OrderID,StringFormat=N3, Mode=OneWay}" />
                 <DataGridTextColumn Header="Exchange" Width="70" Binding="{Binding Exchange,Mode=OneWay}" />
                 <DataGridTextColumn Header="Strategy" Width="150" Binding="{Binding Strategy,Mode=OneWay}" />
+                <DataGridTextColumn Header="Side" Width="70" Binding="{Binding Side,Mode=OneWay}" />
                 <DataGridTextColumn Header="Product" Width="90" Binding="{Binding Product,Mode=OneWay}" />
                 <DataGridTextColumn Header="Size" Width="90" Binding="{Binding Size,Mode=OneWay}" />
                 <DataGridTextColumn Header="Price" Width="90" Binding="{Binding Price,Mode=OneWay}" />
@@ -40,27 +41,43 @@
                 <DataGridTextColumn Header="Filled" Width="130" Binding="{Binding TimeStampFilled,Mode=OneWay}" />
             </DataGrid.Columns>
         </DataGrid>
-        <Label Content="Orders" HorizontalAlignment="Left" Margin="8,219,0,0" VerticalAlignment="Top"/>
+        <Label Content="Orders" HorizontalAlignment="Left" Margin="20,235,0,0" VerticalAlignment="Top"/>
         <ComboBox x:Name="cboServer" HorizontalAlignment="Left" Margin="1195,33,0,0" VerticalAlignment="Top" Width="108" Height="22" SelectedIndex="0" SelectionChanged="cboServer_SelectionChanged">
             <ComboBoxItem Content="Debugging"/>
             <ComboBoxItem Content="Mock"/>
             <ComboBoxItem Content="Production"/>
         </ComboBox>
-        <TextBox x:Name="txtLog" HorizontalAlignment="Left" Height="265" Margin="20,456,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="1010"/>
-        <Label Content="Log" HorizontalAlignment="Left" Margin="10,426,0,0" VerticalAlignment="Top"/>
-        <Button x:Name="btnClose" Content="Exit" HorizontalAlignment="Left" Margin="1195,627,0,0" VerticalAlignment="Top" Width="115" Click="btnClose_Click" RenderTransformOrigin="0.6,0.63" Height="78"/>
+        <TextBox x:Name="txtLog" HorizontalAlignment="Left" Height="264" Margin="1065,462,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="245"/>
+        <Label Content="Log" HorizontalAlignment="Left" Margin="1061,436,0,0" VerticalAlignment="Top" RenderTransformOrigin="7.572,0.937"/>
+        <Button x:Name="btnClose" Content="Exit" HorizontalAlignment="Left" Margin="1195,351,0,0" VerticalAlignment="Top" Width="115" Click="btnClose_Click" RenderTransformOrigin="0.6,0.63" Height="42"/>
         <Label Content="Server" HorizontalAlignment="Left" Margin="1068,29,0,0" VerticalAlignment="Top"/>
         <Button x:Name="btnTradeNextActive" Content="Trade Next Active" HorizontalAlignment="Left" Margin="1195,153,0,0" VerticalAlignment="Top" Width="115" Height="40" Click="btnTradeNextActive_Click"/>
         <Button x:Name="btnTradeNextPassive" Content="Trade Next Passive" HorizontalAlignment="Left" Margin="1065,153,0,0" VerticalAlignment="Top" Width="115" Height="40" Click="btnTradeNextPassive_Click"/>
         <Button x:Name="btnTradeSingle" Content="Trade Single Cycle" HorizontalAlignment="Left" Margin="1065,205,0,0" VerticalAlignment="Top" Width="115" Height="40" Click="btnTradeSingle_Click"/>
-        <Button x:Name="btnTradeCyclePPA" Content="Trade Until Stop" HorizontalAlignment="Left" Margin="1195,205,0,0" VerticalAlignment="Top" Width="115" Height="40"/>
+        <Button x:Name="btnTradeContinuous" Content="Trade Continuous" HorizontalAlignment="Left" Margin="1195,205,0,0" VerticalAlignment="Top" Width="115" Height="40" Click="btnTradeContinuous_Click"/>
         <TextBox x:Name="txtUSD" HorizontalAlignment="Left" Height="23" Margin="1195,67,0,0" TextWrapping="Wrap" Text="1" VerticalAlignment="Top" Width="108" TextChanged="txtUSD_TextChanged" HorizontalContentAlignment="Right"/>
         <Label Content="USD Equivalent" HorizontalAlignment="Left" Margin="1068,64,0,0" VerticalAlignment="Top"/>
-        <Button x:Name="btnTradeCyclePAA_Copy" Content="Stop Cycle" HorizontalAlignment="Left" Margin="1066,315,0,0" VerticalAlignment="Top" Width="115" Height="40"/>
-        <Button x:Name="btnCancel" Content="Cancel One" HorizontalAlignment="Left" Margin="1066,370,0,0" VerticalAlignment="Top" Width="115" Height="40"/>
-        <Button x:Name="btnCancelAll" Content="Cancel All" HorizontalAlignment="Left" Margin="1195,370,0,0" VerticalAlignment="Top" Width="115" Height="40" Click="btnCancelAll_Click"/>
+        <Button x:Name="btnTradeCyclePAA_Copy" Content="Cancel Cycle" HorizontalAlignment="Left" Margin="1065,297,0,0" VerticalAlignment="Top" Width="115" Height="40"/>
+        <Button x:Name="btnCancel" Content="Cancel Order" HorizontalAlignment="Left" Margin="1066,351,0,0" VerticalAlignment="Top" Width="115" Height="40" Click="btnCancel_Click"/>
+        <Button x:Name="btnCancelAll" Content="Cancel All" HorizontalAlignment="Left" Margin="1195,297,0,0" VerticalAlignment="Top" Width="115" Height="40" Click="btnCancelAll_Click"/>
         <TextBox x:Name="txtMinProfit" HorizontalAlignment="Left" Height="23" Margin="1195,93,0,0" TextWrapping="Wrap" Text="0.002" VerticalAlignment="Top" Width="108" HorizontalContentAlignment="Right" TextChanged="txtMinProfit_TextChanged"/>
         <Label Content="Min Profit %" HorizontalAlignment="Left" Margin="1068,90,0,0" VerticalAlignment="Top"/>
+        <DataGrid AutoGenerateColumns="False" HorizontalAlignment="Left" x:Name="dgPositions" Height="270" Margin="25,460,0,0" VerticalAlignment="Top" Width="1015" CanUserResizeColumns="True" CanUserAddRows="False" ItemsSource="{Binding}">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Exchange" Width="70" Binding="{Binding Exchange, Mode=OneWay}" />
+                <DataGridTextColumn Header="Symbol" Width="60" Binding="{Binding Symbol, Mode=OneWay}" />
+                <DataGridTextColumn Header="Initial Bal" Width="70" Binding="{Binding InitialBalance, Mode=OneWay}" />
+                <DataGridTextColumn Header="Current Bal" Width="70" Binding="{Binding CurrentBalance, Mode=OneWay}" />
+                <DataGridTextColumn Header="Initial Last" Width="70" Binding="{Binding InitialLast, Mode=OneWay}" />
+                <DataGridTextColumn Header="Current Last" Width="70" Binding="{Binding Last, Mode=OneWay}" />
+                <DataGridTextColumn Header="Current USD" Width="70" Binding="{Binding CurrentUSD, Mode=OneWay}" />
+                <DataGridTextColumn Header="Trading PnL" Width="100" Binding="{Binding TradingPnL, Mode=OneWay, StringFormat=N3}" />
+                <DataGridTextColumn Header="Total PnL" Width="100" Binding="{Binding TotalPnL, Mode=OneWay, StringFormat=N3}" />
+                <DataGridTextColumn Header="Last Tick" Width="130" Binding="{Binding TimeStampLastTick,Mode=OneWay}" />
+                <DataGridTextColumn Header="Last Pos" Width="130" Binding="{Binding TimeStampLastBalance,Mode=OneWay}" />
+            </DataGrid.Columns>
+        </DataGrid>
+        <Label Content="Positions" HorizontalAlignment="Left" Margin="20,436,0,0" VerticalAlignment="Top"/>
 
     </Grid>
 </Window>

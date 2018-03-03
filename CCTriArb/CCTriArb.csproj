@@ -153,10 +153,7 @@
     </Compile>
     <Compile Include="CBinance.cs" />
     <Compile Include="CHelper.cs" />
-    <Compile Include="ConcurrentObservableList.cs" />
     <Compile Include="MTObservableCollection.cs" />
-    <Compile Include="ObservableConcurrentBag.cs" />
-    <Compile Include="OrderList.cs" />
     <Compile Include="ServerType.cs" />
     <Compile Include="Startup.cs" />
   </ItemGroup>
