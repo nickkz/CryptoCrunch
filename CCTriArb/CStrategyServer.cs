@@ -2,6 +2,7 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading;
@@ -10,6 +11,7 @@ using System.Timers;
 using System.Windows;
 using System.Windows.Data;
 using System.Windows.Threading;
+using YamlDotNet.RepresentationModel;
 
 namespace CCTriArb
 {
@@ -21,8 +23,8 @@ namespace CCTriArb
         public ConcurrentDictionary<String, COrder> dctIdToOrder;
         public Dictionary<String, CExchange> dctExchanges;
 
-        public MTObservableCollection<CProduct> colProducts;
-        public Dictionary<String, CProduct> dctProducts;
+        public MTObservableCollection<CProduct> colServerProducts;
+        public Dictionary<String, CProduct> dctServerProducts;
 
         public CCTriArbMain gui;
         public ServerType serverType = ServerType.Debugging;
@@ -39,23 +41,70 @@ namespace CCTriArb
             private set;
         }
 
-        public CStrategyServer()
+        public CStrategyServer(string[] args)
         {
             Server = this;
-
             IsActive = true;
             TradeUSD = 1.0;
             MinProfit = 0.002;
             CExchange kuExchange = new CKuCoin();
             CExchange beExchange = new CBinance();
+            dctExchanges = new Dictionary<String, CExchange>();
+            dctExchanges.Add(kuExchange.Name, kuExchange);
+            dctExchanges.Add(beExchange.Name, beExchange);
+            colServerProducts = new MTObservableCollection<CProduct>();
+            dctServerProducts = new Dictionary<String, CProduct>();
+            colStrategies = new MTObservableCollection<CTriArb>();
 
-            Dictionary<int, Tuple<OrderSide, CProduct>> dctLegs_ku_USD_BTC_ETH = new Dictionary<int, Tuple<OrderSide, CProduct>>();
-            Dictionary<int, Tuple<OrderSide, CProduct>> dctLegs_ku_USD_ETH_BTC = new Dictionary<int, Tuple<OrderSide, CProduct>>();
-            Dictionary<int, Tuple<OrderSide, CProduct>> dctLegs_be_USD_BTC_ETH = new Dictionary<int, Tuple<OrderSide, CProduct>>();
-            Dictionary<int, Tuple<OrderSide, CProduct>> dctLegs_be_USD_ETH_BTC = new Dictionary<int, Tuple<OrderSide, CProduct>>();
+            CExchange exchangeConfig;
+            // load yaml config
+            string config = File.ReadAllText(args[0]);
 
-            colProducts = new MTObservableCollection<CProduct>();
-            dctProducts = new Dictionary<String, CProduct>();
+            // load Yaml
+            var input = new StringReader(config);
+            // Load the stream
+            var yaml = new YamlStream();
+            yaml.Load(input);
+            // Examine the stream
+            var mapping = (YamlMappingNode)yaml.Documents[0].RootNode;
+            foreach (var entry in mapping.Children)
+            {
+                if (entry.Key.ToString().Equals("Exchanges"))
+                {
+                    foreach (YamlMappingNode exchangeYaml in ((YamlSequenceNode)entry.Value).Children)
+                    {
+                        exchangeConfig = dctExchanges[exchangeYaml["Exchange"].ToString()];
+                        var productsYaml = (YamlSequenceNode)exchangeYaml["Products"];
+                        foreach (YamlMappingNode productYaml in productsYaml)
+                        {
+                            String symbol = productYaml.Children[new YamlScalarNode("symbol")].ToString();
+                            int precisionSize = int.Parse(productYaml.Children[new YamlScalarNode("precisionSize")].ToString());
+                            int precisionPrice = int.Parse(productYaml.Children[new YamlScalarNode("precisionPrice")].ToString());
+                            CProduct productConfig = new CProduct(exchangeConfig, symbol, precisionSize, precisionPrice);
+                            dctServerProducts.Add(exchangeConfig + "." + symbol, productConfig);
+                            if (symbol.Contains("USD"))
+                                colServerProducts.Add(productConfig);
+                            productConfig.Exchange.dctProducts.Add(symbol, productConfig);
+                        }
+                        var strategiesYaml = (YamlSequenceNode)exchangeYaml["Strategies"];
+                        foreach (YamlMappingNode strategyYaml in strategiesYaml)
+                        {
+                            Dictionary<int, Tuple<OrderSide, CProduct>> dctLegs_config = new Dictionary<int, Tuple<OrderSide, CProduct>>();
+                            for (int leg = 1;leg <= 3;leg++)
+                            {
+                                String legsymbol = strategyYaml.Children[new YamlScalarNode("leg" + leg + "symbol")].ToString();
+                                CProduct strategyProduct = dctServerProducts[exchangeConfig + "." + legsymbol];
+                                Enum.TryParse(strategyYaml.Children[new YamlScalarNode("leg" + leg + "side")].ToString(), out OrderSide orderSide);
+                                dctLegs_config.Add(leg, new Tuple<OrderSide, CProduct>(orderSide, strategyProduct));
+                            }
+                            colStrategies.Add(new CTriArb(dctLegs_config));
+                        }
+                    }
+                }
+            }
+
+            /*
+
             CProduct product_ku_USDT = new CProduct(kuExchange, "USDT", 6, 8);
             CProduct product_ku_BTC_USDT = new CProduct(kuExchange, "BTC-USDT", 6, 8);
             CProduct product_ku_ETH_BTC = new CProduct(kuExchange, "ETH-BTC", 6, 6);
@@ -71,18 +120,25 @@ namespace CCTriArb
             dctProducts.Add(product_be_BTC_USDT.Symbol, product_be_BTC_USDT);
             dctProducts.Add(product_be_ETH_BTC.Symbol, product_be_ETH_BTC);
             dctProducts.Add(product_be_ETH_USDT.Symbol, product_be_ETH_USDT);
+            */
 
             // Global products contain "USD" e.g. ETH-USD
             // Strategy Products contain only tradeable e.g. ETH-BTC
             // Exchange Products contain everything
 
+            /*
             foreach (String symbol in dctProducts.Keys)
             {
                 CProduct product = dctProducts[symbol];
-                if (symbol.Contains("USD"))
-                    colProducts.Add(product);
+
                 product.Exchange.dctProducts.Add(symbol, product);
             }
+            */
+            /*
+            Dictionary<int, Tuple<OrderSide, CProduct>> dctLegs_ku_USD_BTC_ETH = new Dictionary<int, Tuple<OrderSide, CProduct>>();
+            Dictionary<int, Tuple<OrderSide, CProduct>> dctLegs_ku_USD_ETH_BTC = new Dictionary<int, Tuple<OrderSide, CProduct>>();
+            Dictionary<int, Tuple<OrderSide, CProduct>> dctLegs_be_USD_BTC_ETH = new Dictionary<int, Tuple<OrderSide, CProduct>>();
+            Dictionary<int, Tuple<OrderSide, CProduct>> dctLegs_be_USD_ETH_BTC = new Dictionary<int, Tuple<OrderSide, CProduct>>();
 
             dctLegs_ku_USD_BTC_ETH.Add(1, new Tuple<OrderSide, CProduct>(OrderSide.Buy, product_ku_BTC_USDT));
             dctLegs_ku_USD_BTC_ETH.Add(2, new Tuple<OrderSide, CProduct>(OrderSide.Buy, product_ku_ETH_BTC));
@@ -100,18 +156,14 @@ namespace CCTriArb
 
             //Dispatcher dispatcher = Dispatcher.CurrentDispatcher;
 
-            colStrategies = new MTObservableCollection<CTriArb>();
             colStrategies.Add(new CTriArb(dctLegs_ku_USD_BTC_ETH));
             colStrategies.Add(new CTriArb(dctLegs_ku_USD_ETH_BTC));
             colStrategies.Add(new CTriArb(dctLegs_be_USD_BTC_ETH));
             colStrategies.Add(new CTriArb(dctLegs_be_USD_ETH_BTC));
+            */
 
             colOrders = new MTObservableCollection<COrder>();
             dctIdToOrder = new ConcurrentDictionary<String, COrder>();
-
-            dctExchanges = new Dictionary<String, CExchange>();
-            dctExchanges.Add(kuExchange.Name, kuExchange);
-            dctExchanges.Add(beExchange.Name, beExchange);
 
             System.Timers.Timer timerTicks = new System.Timers.Timer(5000);
             timerTicks.Elapsed += new ElapsedEventHandler(pollTicks);

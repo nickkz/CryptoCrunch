@@ -49,7 +49,7 @@ namespace CCTriArb
         {
             dgStrategies.DataContext = server.colStrategies;
             dgOrders.DataContext = server.colOrders;
-            dgPositions.DataContext = server.colProducts;
+            dgPositions.DataContext = server.colServerProducts;
         }
 
         private void btnTradeNextPassive_Click(object sender, RoutedEventArgs e)

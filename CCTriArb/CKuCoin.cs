@@ -466,7 +466,7 @@ namespace CCTriArb
             {
                 String endpoint = "/v1/order/cancel-all";  // API endpoint
                 HttpClient httpClient = new HttpClient();
-                foreach (CProduct product in server.dctProducts.Values)
+                foreach (CProduct product in server.dctServerProducts.Values)
                 {
                     if (product.Exchange.Equals(this))
                     {

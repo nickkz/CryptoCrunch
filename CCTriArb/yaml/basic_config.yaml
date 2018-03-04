@@ -1,0 +1,58 @@
+Exchanges:
+- Exchange: KuCoin
+  Products:
+  - symbol             : USDT
+    precisionSize      : 6
+    precisionPrice     : 8
+  - symbol             : BTC-USDT
+    precisionSize      : 6
+    precisionPrice     : 8
+  - symbol             : ETH-BTC
+    precisionSize      : 6
+    precisionPrice     : 6
+  - symbol             : ETH-USDT
+    precisionSize      : 6
+    precisionPrice     : 6
+  Strategies:
+  - name               : 
+    leg1symbol         : BTC-USDT
+    leg1side           : Buy
+    leg2symbol         : ETH-BTC
+    leg2side           : Buy
+    leg3symbol         : ETH-USDT
+    leg3side           : Sell
+  - name               : 
+    leg1symbol         : ETH-USDT
+    leg1side           : Buy
+    leg2symbol         : ETH-BTC
+    leg2side           : Sell
+    leg3symbol         : BTC-USDT
+    leg3side           : Sell
+
+
+- Exchange: Binance
+  Products:
+  - symbol             : BTCUSDT
+    precisionSize      : 6
+    precisionPrice     : 8
+  - symbol             : ETHBTC
+    precisionSize      : 3
+    precisionPrice     : 6
+  - symbol             : ETHUSDT
+    precisionSize      : 4
+    precisionPrice     : 6
+  Strategies:
+  - name               : 
+    leg1symbol         : BTCUSDT
+    leg1side           : Buy
+    leg2symbol         : ETHBTC
+    leg2side           : Buy
+    leg3symbol         : ETHUSDT
+    leg3side           : Sell
+  - name               : 
+    leg1symbol         : ETHUSDT
+    leg1side           : Buy
+    leg2symbol         : ETHBTC
+    leg2side           : Sell
+    leg3symbol         : BTCUSDT
+    leg3side           : Sell

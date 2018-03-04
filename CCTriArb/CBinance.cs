@@ -341,7 +341,7 @@ namespace CCTriArb
 
                 HttpClient httpClient = new HttpClient();
 
-                foreach (CProduct product in server.dctProducts.Values)
+                foreach (CProduct product in server.dctServerProducts.Values)
                 {
                     Dictionary<string, string> parameters = new Dictionary<string, string> {
                         { "symbol", product.Symbol }
