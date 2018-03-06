@@ -19,9 +19,9 @@ namespace CCTriArb
         #endregion
 
         #region Properties
-        public Dictionary <String, CProduct> dctProducts { get; set; }
-        public Dictionary<String, Double> dctPositions { get; set; }
-        public Dictionary<String, String> dctAccounts { get; set; }
+        public Dictionary <String, CProduct> dctExchangeProducts { get; set; }
+        public Dictionary<String, Double> dctExchangePositions { get; set; }
+        public Dictionary<String, String> dctExchangeAccounts { get; set; }
         public String Name { get; set; }
         public string BaseURL { get; set; }
         public string AccountRequest { get; set; }
@@ -33,9 +33,9 @@ namespace CCTriArb
         #region Constructor
         public CExchange()
         {
-            dctProducts = new Dictionary<String, CProduct>();
-            dctAccounts = new Dictionary<String, String>();
-            dctPositions = new Dictionary<String, double>();
+            dctExchangeProducts = new Dictionary<String, CProduct>();
+            dctExchangeAccounts = new Dictionary<String, String>();
+            dctExchangePositions = new Dictionary<String, double>();
             this.server = CStrategyServer.Server;
         }
         #endregion

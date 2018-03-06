@@ -9,11 +9,12 @@ namespace CCTriArb
 {
     public class CTriArb : CStrategy
     {
-        private const int MAKER_LEG = 2;
+        private int MakerLeg { get; set; }
 
-        internal CTriArb(Dictionary<int, Tuple<OrderSide, CProduct>> dctLegs) : base(dctLegs)
+        internal CTriArb(Dictionary<int, Tuple<OrderSide, CProduct>> dctLegs, int makerLeg) : base(dctLegs)
         {
             State = StrategyState.Inactive;
+            MakerLeg = makerLeg;
             Continuous = false;
         }
 
@@ -155,7 +156,7 @@ namespace CCTriArb
                 if (product.Exchange is CKuCoin)
                     productUSD += "-";
                 productUSD += "USDT";
-                CProduct productExchange = DctProducts[productUSD];
+                CProduct productExchange = DctStrategyProducts[productUSD];
                 if (productExchange.Symbol.Equals(productUSD))
                 {
                     size = dUSD / (double)productExchange.Last;
@@ -190,18 +191,18 @@ namespace CCTriArb
                         break;
 
                     case StrategyState.MakerSend:
-                        CurrentLeg = MAKER_LEG;
+                        CurrentLeg = MakerLeg;
                         double dUSD = server.TradeUSD.GetValueOrDefault();
                         OrderSide sideMaker = dctLegs[CurrentLeg].Item1;
                         CProduct productMaker = dctLegs[CurrentLeg].Item2;
                         Double sizeMaker = GetSize(sideMaker, productMaker);
                         Double priceMaker = (double)(sideMaker == OrderSide.Buy ? productMaker.Bid : productMaker.Ask);
-                        dctLegs[MAKER_LEG].Item2.Exchange.trade(this, MAKER_LEG, sideMaker, productMaker, Math.Round(sizeMaker, productMaker.PrecisionSize), Math.Round(priceMaker, productMaker.PrecisionPrice));
+                        dctLegs[MakerLeg].Item2.Exchange.trade(this, MakerLeg, sideMaker, productMaker, Math.Round(sizeMaker, productMaker.PrecisionSize), Math.Round(priceMaker, productMaker.PrecisionPrice));
                         State = StrategyState.MakerProcess;
                         break;
 
                     case StrategyState.MakerProcess:
-                        COrder order = DctLegToOrder[MAKER_LEG];
+                        COrder order = DctLegToOrder[MakerLeg];
                         if (order.Status == "Filled")
                         {
                             State = StrategyState.TakerSend;
@@ -290,7 +291,7 @@ namespace CCTriArb
                 if (product.Exchange is CKuCoin)
                     productUSD += "-";
                 productUSD += "USDT";
-                CProduct productExchange = DctProducts[productUSD];
+                CProduct productExchange = DctStrategyProducts[productUSD];
                 if (productExchange.Symbol.Equals(productUSD))
                 {
                     size = dUSD / (double)productExchange.Last;

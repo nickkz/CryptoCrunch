@@ -19,7 +19,7 @@ namespace CCTriArb
     public class CStrategyServer
     {
         public MTObservableCollection<CTriArb> colStrategies;
-        public MTObservableCollection<COrder> colOrders;
+        public MTObservableCollection<COrder> colServerOrders;
         public ConcurrentDictionary<String, COrder> dctIdToOrder;
         public Dictionary<String, CExchange> dctExchanges;
 
@@ -84,7 +84,7 @@ namespace CCTriArb
                             dctServerProducts.Add(exchangeConfig + "." + symbol, productConfig);
                             if (symbol.Contains("USD"))
                                 colServerProducts.Add(productConfig);
-                            productConfig.Exchange.dctProducts.Add(symbol, productConfig);
+                            productConfig.Exchange.dctExchangeProducts.Add(symbol, productConfig);
                         }
                         var strategiesYaml = (YamlSequenceNode)exchangeYaml["Strategies"];
                         foreach (YamlMappingNode strategyYaml in strategiesYaml)
@@ -97,72 +97,14 @@ namespace CCTriArb
                                 Enum.TryParse(strategyYaml.Children[new YamlScalarNode("leg" + leg + "side")].ToString(), out OrderSide orderSide);
                                 dctLegs_config.Add(leg, new Tuple<OrderSide, CProduct>(orderSide, strategyProduct));
                             }
-                            colStrategies.Add(new CTriArb(dctLegs_config));
+                            int makerLeg = int.Parse(strategyYaml.Children[new YamlScalarNode("makerleg")].ToString());
+                            colStrategies.Add(new CTriArb(dctLegs_config, makerLeg));
                         }
                     }
                 }
             }
 
-            /*
-
-            CProduct product_ku_USDT = new CProduct(kuExchange, "USDT", 6, 8);
-            CProduct product_ku_BTC_USDT = new CProduct(kuExchange, "BTC-USDT", 6, 8);
-            CProduct product_ku_ETH_BTC = new CProduct(kuExchange, "ETH-BTC", 6, 6);
-            CProduct product_ku_ETH_USDT = new CProduct(kuExchange, "ETH-USDT", 6, 6);
-            CProduct product_be_BTC_USDT = new CProduct(beExchange, "BTCUSDT", 6, 8);
-            CProduct product_be_ETH_BTC = new CProduct(beExchange, "ETHBTC", 3, 6);
-            CProduct product_be_ETH_USDT = new CProduct(beExchange, "ETHUSDT", 4, 6);
-
-            dctProducts.Add(product_ku_USDT.Symbol, product_ku_USDT);
-            dctProducts.Add(product_ku_BTC_USDT.Symbol, product_ku_BTC_USDT);
-            dctProducts.Add(product_ku_ETH_BTC.Symbol, product_ku_ETH_BTC);
-            dctProducts.Add(product_ku_ETH_USDT.Symbol, product_ku_ETH_USDT);
-            dctProducts.Add(product_be_BTC_USDT.Symbol, product_be_BTC_USDT);
-            dctProducts.Add(product_be_ETH_BTC.Symbol, product_be_ETH_BTC);
-            dctProducts.Add(product_be_ETH_USDT.Symbol, product_be_ETH_USDT);
-            */
-
-            // Global products contain "USD" e.g. ETH-USD
-            // Strategy Products contain only tradeable e.g. ETH-BTC
-            // Exchange Products contain everything
-
-            /*
-            foreach (String symbol in dctProducts.Keys)
-            {
-                CProduct product = dctProducts[symbol];
-
-                product.Exchange.dctProducts.Add(symbol, product);
-            }
-            */
-            /*
-            Dictionary<int, Tuple<OrderSide, CProduct>> dctLegs_ku_USD_BTC_ETH = new Dictionary<int, Tuple<OrderSide, CProduct>>();
-            Dictionary<int, Tuple<OrderSide, CProduct>> dctLegs_ku_USD_ETH_BTC = new Dictionary<int, Tuple<OrderSide, CProduct>>();
-            Dictionary<int, Tuple<OrderSide, CProduct>> dctLegs_be_USD_BTC_ETH = new Dictionary<int, Tuple<OrderSide, CProduct>>();
-            Dictionary<int, Tuple<OrderSide, CProduct>> dctLegs_be_USD_ETH_BTC = new Dictionary<int, Tuple<OrderSide, CProduct>>();
-
-            dctLegs_ku_USD_BTC_ETH.Add(1, new Tuple<OrderSide, CProduct>(OrderSide.Buy, product_ku_BTC_USDT));
-            dctLegs_ku_USD_BTC_ETH.Add(2, new Tuple<OrderSide, CProduct>(OrderSide.Buy, product_ku_ETH_BTC));
-            dctLegs_ku_USD_BTC_ETH.Add(3, new Tuple<OrderSide, CProduct>(OrderSide.Sell, product_ku_ETH_USDT));
-            dctLegs_ku_USD_ETH_BTC.Add(1, new Tuple<OrderSide, CProduct>(OrderSide.Buy, product_ku_ETH_USDT));
-            dctLegs_ku_USD_ETH_BTC.Add(2, new Tuple<OrderSide, CProduct>(OrderSide.Sell, product_ku_ETH_BTC));
-            dctLegs_ku_USD_ETH_BTC.Add(3, new Tuple<OrderSide, CProduct>(OrderSide.Sell, product_ku_BTC_USDT));
-
-            dctLegs_be_USD_BTC_ETH.Add(1, new Tuple<OrderSide, CProduct>(OrderSide.Buy, product_be_BTC_USDT));
-            dctLegs_be_USD_BTC_ETH.Add(2, new Tuple<OrderSide, CProduct>(OrderSide.Buy, product_be_ETH_BTC));
-            dctLegs_be_USD_BTC_ETH.Add(3, new Tuple<OrderSide, CProduct>(OrderSide.Sell, product_be_ETH_USDT));
-            dctLegs_be_USD_ETH_BTC.Add(1, new Tuple<OrderSide, CProduct>(OrderSide.Buy, product_be_ETH_USDT));
-            dctLegs_be_USD_ETH_BTC.Add(2, new Tuple<OrderSide, CProduct>(OrderSide.Sell, product_be_ETH_BTC));
-            dctLegs_be_USD_ETH_BTC.Add(3, new Tuple<OrderSide, CProduct>(OrderSide.Sell, product_be_BTC_USDT));
-
-            //Dispatcher dispatcher = Dispatcher.CurrentDispatcher;
-
-            colStrategies.Add(new CTriArb(dctLegs_ku_USD_BTC_ETH));
-            colStrategies.Add(new CTriArb(dctLegs_ku_USD_ETH_BTC));
-            colStrategies.Add(new CTriArb(dctLegs_be_USD_BTC_ETH));
-            colStrategies.Add(new CTriArb(dctLegs_be_USD_ETH_BTC));
-            */
-
-            colOrders = new MTObservableCollection<COrder>();
+            colServerOrders = new MTObservableCollection<COrder>();
             dctIdToOrder = new ConcurrentDictionary<String, COrder>();
 
             System.Timers.Timer timerTicks = new System.Timers.Timer(5000);

@@ -16,6 +16,9 @@ Exchanges:
   - symbol             : LTC-USDT
     precisionSize      : 6
     precisionPrice     : 6
+  - symbol             : LTC-BTC
+    precisionSize      : 6
+    precisionPrice     : 6  
   Strategies:
   - name               : 
     leg1symbol         : BTC-USDT
@@ -34,16 +37,19 @@ Exchanges:
     leg3side           : Sell
     makerleg           : 2
   - name               : 
-    leg1symbol         : LTC-USDT
+    leg1symbol         : BTC-USDT
     leg1side           : Buy
     leg2symbol         : LTC-BTC
-    leg2side           : Sell
-    leg3symbol         : BTC-USDT
+    leg2side           : Buy
+    leg3symbol         : LTC-USDT
     leg3side           : Sell
     makerleg           : 2
 
 - Exchange: Binance
   Products:
+  - symbol             : USDT
+    precisionSize      : 6
+    precisionPrice     : 8
   - symbol             : BTCUSDT
     precisionSize      : 6
     precisionPrice     : 8

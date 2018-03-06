@@ -13,8 +13,8 @@ namespace CCTriArb
     {
         protected CStrategyServer server;
         protected Dictionary<int, Tuple<OrderSide, CProduct>> dctLegs;
-        public ConcurrentDictionary<String, CProduct> DctProducts { get; set; }
-        public ConcurrentDictionary<String, COrder> DctOrders { get; set; }
+        public ConcurrentDictionary<String, CProduct> DctStrategyProducts { get; set; }
+        public ConcurrentDictionary<String, COrder> DctStrategyOrders { get; set; }
         public ConcurrentDictionary<int, COrder> DctLegToOrder { get; set; }
         protected Boolean processStrategy;
 
@@ -38,8 +38,8 @@ namespace CCTriArb
             this.dctLegs = dctLegs;
             processStrategy = false;
             CurrentLeg = 1;
-            DctProducts = new ConcurrentDictionary<String, CProduct>();
-            DctOrders = new ConcurrentDictionary<String, COrder>();
+            DctStrategyProducts = new ConcurrentDictionary<String, CProduct>();
+            DctStrategyOrders = new ConcurrentDictionary<String, COrder>();
             DctLegToOrder = new ConcurrentDictionary<int, COrder>();
 
             // link everything up
@@ -50,12 +50,12 @@ namespace CCTriArb
 
                 // assign Product to Strategy Product Collection
                 CProduct product = dctLegs[i].Item2;
-                if (!DctProducts.ContainsKey(product.Symbol))
-                    DctProducts[product.Symbol] = product;
+                if (!DctStrategyProducts.ContainsKey(product.Symbol))
+                    DctStrategyProducts[product.Symbol] = product;
 
                 // assign Product to Exchange Product Collection 
-                if (!dctLegs[i].Item2.Exchange.dctProducts.ContainsKey(product.Symbol))
-                    dctLegs[i].Item2.Exchange.dctProducts.Add(product.Symbol, product);
+                if (!dctLegs[i].Item2.Exchange.dctExchangeProducts.ContainsKey(product.Symbol))
+                    dctLegs[i].Item2.Exchange.dctExchangeProducts.Add(product.Symbol, product);
 
                 //TODO: any more linking
             }

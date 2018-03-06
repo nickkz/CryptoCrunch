@@ -48,7 +48,7 @@ namespace CCTriArb
         private void frmTriArbMain_Loaded(object sender, RoutedEventArgs e)
         {
             dgStrategies.DataContext = server.colStrategies;
-            dgOrders.DataContext = server.colOrders;
+            dgOrders.DataContext = server.colServerOrders;
             dgPositions.DataContext = server.colServerProducts;
         }
 

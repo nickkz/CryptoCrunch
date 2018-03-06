@@ -15,6 +15,8 @@ namespace CCTriArb
     class CBinance : CExchange
     {
         ExchangeBinanceAPI api;
+        static object _pollTicksLock = new object();
+        static object _pollOrdersLock = new object();
 
         public CBinance() : base()
         {
@@ -22,16 +24,41 @@ namespace CCTriArb
             BaseURL = "https://api.kucoin.com/v1/open/tick";
             Name = api.Name;
             getAccounts();
-        }
-
-        public override void cancel(string orderID)
-        {
-            throw new NotImplementedException();
+            api.LoadAPIKeysUnsecure(Properties.Settings.Default.BINANCE_API_KEY, Properties.Settings.Default.BINANCE_API_SECRET);
         }
 
         public override void getAccounts()
         {
-            //throw new NotImplementedException();
+        }
+
+        public override void pollTicks(object source, ElapsedEventArgs e)
+        {
+            lock (_pollTicksLock)
+            {
+                foreach (CProduct product in dctExchangeProducts.Values)
+                {
+                    try
+                    {
+                        ExchangeTicker ticker = api.GetTicker(product.Symbol);
+                        product.Bid = ticker.Bid;
+                        product.Ask = ticker.Ask;
+                        product.Last = ticker.Last;
+                        Decimal last;
+                        Decimal.TryParse(ticker.Last.ToString(), out last);
+                        product.SetLast(last);
+                        product.Volume = ticker.Volume.QuantityAmount;
+                        product.TimeStampLastTick = ticker.Volume.Timestamp;
+                        foreach (CStrategy strategy in product.colStrategy)
+                        {
+                            strategy.updateGUI();
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        server.AddLog(ex.Message);
+                    }
+                }
+            }
         }
 
         public override async void pollOrders(object source, ElapsedEventArgs e)
@@ -40,190 +67,10 @@ namespace CCTriArb
                 return;
             else
                 pollingOrders = true;
-
             try
             {
-                String API_KEY = Properties.Settings.Default.KUCOIN_API_KEY;
-                String API_SECRET = Properties.Settings.Default.KUCOIN_API_SECRET;
-                ServerType serverType = server.serverType;
-                Uri baseAddress;
-                switch (serverType)
-                {
-                    case ServerType.Debugging:
-                        baseAddress = new Uri("https://private-f6a2b2-kucoinapidocs.apiary-proxy.com");
-                        break;
-
-                    case ServerType.Mock:
-                        baseAddress = new Uri("https://private-f6a2b2-kucoinapidocs.apiary-mock.com");
-                        break;
-
-                    default:
-                        baseAddress = new Uri("https://api.kucoin.com");
-                        break;
-                }
-                HttpClient httpClient = new HttpClient();
-                foreach (CProduct product in dctProducts.Values)
-                {
-
-                    for (int active_dealt = 0; active_dealt < 2; active_dealt++)
-                    {
-                        String endpoint;
-                        Dictionary<string, string> parameters;
-                        if (active_dealt == 1)
-                        {
-                            endpoint = "/v1/order/dealt";
-                            parameters = new Dictionary<string, string> {
-                                { "symbol", product.Symbol }//,
-                                //{ "limit", "20" }
-                            };
-                        }
-                        else
-                        {
-                            endpoint = "/v1/order/active";
-                            parameters = new Dictionary<string, string> {
-                                { "symbol", product.Symbol }
-                            };
-                        }
-                        HttpContent queryString = new FormUrlEncodedContent(parameters);
-                        String strQuery = "";
-                        foreach (String param in parameters.Keys)
-                        {
-                            if (strQuery.Length > 0)
-                                strQuery += "&";
-                            strQuery += (param + "=" + parameters[param]);
-                        }
-
-                        //splice string for signing
-                        String nonce = CHelper.ConvertToUnixTimestamp().ToString();
-                        String ApiForSign = endpoint + "/" + nonce + "/" + strQuery;
-                        String Base64ForSign = CHelper.Base64Encode(ApiForSign);
-
-                        UTF8Encoding encoding = new System.Text.UTF8Encoding();
-                        byte[] keyByte = encoding.GetBytes(API_SECRET);
-                        byte[] messageBytes = encoding.GetBytes(Base64ForSign);
-                        HMACSHA256 hmacsha256 = new HMACSHA256(keyByte);
-                        byte[] hashmessage = hmacsha256.ComputeHash(messageBytes);
-
-                        byte[] ba = hashmessage;
-                        StringBuilder hex = new StringBuilder(ba.Length * 2);
-                        foreach (byte b in ba)
-                            hex.AppendFormat("{0:x2}", b);
-
-                        String signatureResult = hex.ToString();
-
-                        // Add a new Request Message
-                        HttpRequestMessage requestMessage = new HttpRequestMessage(HttpMethod.Get, baseAddress + endpoint + "?" + strQuery);
-
-                        // Add our custom headers
-                        requestMessage.Headers.Add("KC-API-SIGNATURE", signatureResult);
-                        requestMessage.Headers.Add("KC-API-KEY", API_KEY);
-                        requestMessage.Headers.Add("KC-API-NONCE", nonce);
-
-                        // Send the request to the server
-                        HttpResponseMessage response = await httpClient.SendAsync(requestMessage);
-
-                        // Just as an example I'm turning the response into a string here
-                        string json = await response.Content.ReadAsStringAsync();
-
-                        dynamic orderData = JsonConvert.DeserializeObject(json);
-                        var orders = orderData.data;
-                        if (orders != null)
-                        {
-                            if (active_dealt == 1)
-                            {
-                                var orderDealtAll = orders.datas;
-                                foreach (var orderDealt in orderDealtAll)
-                                {
-                                    String oid = orderDealt.oid;
-                                    String orderOid = orderDealt.orderOid;
-                                    Double dealPrice = orderDealt.dealPrice;
-                                    Double fee = orderDealt.fee;
-                                    Double feeRate = orderDealt.feeRate;
-                                    Double amount = orderDealt.amount;
-                                    Double dealValue = orderDealt.dealValue;
-                                    COrder order = null;
-                                    if (server.dctIdToOrder.ContainsKey(oid))
-                                        order = server.dctIdToOrder[oid];
-                                    else if (server.dctIdToOrder.ContainsKey(orderOid))
-                                        order = server.dctIdToOrder[orderOid];
-
-                                    /*
-                                    if (order == null)
-                                    {
-                                        order = new COrder(orderOid);
-                                        //Server.colOrders.Add(order);
-                                        Server.dctIdToOrder.Add(orderOid, order);
-                                    }
-                                    */
-
-                                    if (order != null)
-                                    {
-                                        order.OID = oid;
-                                        order.DealPrice = dealPrice;
-                                        order.Fee = fee;
-                                        order.FeeRate = feeRate;
-                                        order.DealValue = dealValue;
-                                        order.Filled = amount;
-                                        order.Status = "Filled";
-                                        order.TimeStampFilled = DateTime.Now;
-                                        order.updateGUI();
-                                    }
-                                }
-                            }
-                            else
-                            {
-                                foreach (var orderSideSet in orders)
-                                {
-                                    String name = orderSideSet.Name;
-                                    foreach (var orderSideSetOrders in orderSideSet)
-                                    {
-                                        foreach (var orderSideSetOrder in orderSideSetOrders)
-                                        {
-                                            int iAttrCount = 0;
-                                            Double filled = 0;
-                                            Double timeStamp = 0;
-                                            String orderID = null;
-                                            foreach (var orderSideSetOrderAttr in orderSideSetOrder)
-                                            {
-                                                // timestamp, side, price, size, executed, orderID
-                                                switch (++iAttrCount)
-                                                {
-                                                    case 1:
-                                                        timeStamp = orderSideSetOrderAttr;
-                                                        break;
-
-                                                    case 5:
-                                                        filled = orderSideSetOrderAttr;
-                                                        break;
-
-                                                    case 6:
-                                                        orderID = orderSideSetOrderAttr;
-                                                        break;
-                                                }
-                                            }
-
-                                            if (orderID != null && server.dctIdToOrder.ContainsKey(orderID))
-                                            {
-                                                COrder order = server.dctIdToOrder[orderID];
-                                                if (filled > 0)
-                                                {
-                                                    order.Filled = filled;
-                                                    order.TimeStampFilled = DateTime.Now;
-                                                    if (order.Filled < order.Size)
-                                                        order.Status = "Partial";
-                                                }
-                                                order.Status = "Queued";
-                                                order.TimeStampSent = CHelper.ConvertFromUnixTimestamp(timeStamp);
-                                                order.TimeStampLastUpdate = DateTime.Now;
-                                                order.updateGUI();
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
+                IEnumerable<ExchangeOrderResult> resultOpenOrders = await api.GetOpenOrderDetailsAsync();
+                IEnumerable<ExchangeOrderResult> resultCompletedOrders = await api.GetCompletedOrderDetailsAsync();
             }
             catch (Exception ex)
             {
@@ -232,54 +79,43 @@ namespace CCTriArb
             pollingOrders = false;
         }
 
-        public override void pollTicks(object source, ElapsedEventArgs e)
+        public override async void pollPositions(object source, ElapsedEventArgs e)
         {
-            if (pollingTicks)
+            if (pollingPositions)
                 return;
             else
-                pollingTicks = true;
-            foreach (CProduct product in dctProducts.Values)
+                pollingPositions = true;
+            Dictionary<String, Decimal> positions = await api.GetAmountsAsync();
+            foreach (var pos in positions)
             {
-                try
+                var coinType = pos.Key;
+                var balance = pos.Value;
+                String symbol = (coinType.ToString().Equals("USDT")) ? coinType : coinType + "USDT";
+                if (dctExchangeProducts.ContainsKey(symbol))
                 {
-                    ExchangeTicker ticker = api.GetTicker(product.Symbol);
-                    //Console.WriteLine("On the Binance exchange, 1 " + product.Symbol + " is worth {0} USD.", ticker.Bid);
-
-                    product.Bid = ticker.Bid;
-                    product.Ask = ticker.Ask;
-                    product.Last = ticker.Last;
-                    product.Volume = ticker.Volume.QuantityAmount;
-                    DateTime DtUpdate = ticker.Volume.Timestamp;
-
-                    foreach (CStrategy strategy in product.colStrategy)
-                    {
-                        strategy.updateGUI();
-                    }
-                }
-                catch (Exception ex)
-                {
-                    server.AddLog(ex.Message);
+                    CProduct product = dctExchangeProducts[symbol];
+                    product.TimeStampLastBalance = DateTime.Now;
+                    Double dbal = 0;
+                    Double.TryParse(balance.ToString(), out dbal);
+                    product.SetBalance(dbal);
+                    product.updateGUI();
                 }
             }
-            pollingTicks = false;
+            pollingPositions = false;
         }
 
         public override void trade(CStrategy strategy, int? leg, OrderSide? side, CProduct product, Double size, Double price)
         {
             try
             {
-                String API_KEY = Properties.Settings.Default.BINANCE_API_KEY;
-                String API_SECRET = Properties.Settings.Default.BINANCE_API_SECRET;
-
-                api.LoadAPIKeysUnsecure(API_KEY, API_SECRET);
-                server.AddLog("Setting up " + side + " " + product.Symbol + " Trade on " + api.Name);
+                server.AddLog("Init " + side + " " + product.Symbol + " Trade on " + api.Name);
 
                 ExchangeTicker ticker = api.GetTicker(product.Symbol);
                 ExchangeOrderResult result = api.PlaceOrder(new ExchangeOrderRequest
                 {
-                    Amount = (Decimal) size,
+                    Amount = (Decimal)size,
                     IsBuy = (side == OrderSide.Buy),
-                    Price = (Decimal) price,
+                    Price = (Decimal)price,
                     Symbol = product.Symbol
                 });
 
@@ -303,10 +139,18 @@ namespace CCTriArb
                 order.Exchange = this;
                 order.TimeStampSent = result.OrderDate;
 
-                // add order to both Strategy orders and global Orders
-                server.colOrders.Add(order);
-                server.dctIdToOrder.AddOrUpdate(orderID, order, (key, oldValue) => order);
-                strategy.DctOrders.AddOrUpdate(orderID, order, (key, oldValue) => order);
+                server.AddLog("Created Order " + this.Name + " " + orderID + " " + product + " " + side + " " + size + " " + price);
+
+                // add order to global Orders
+                server.colServerOrders.Add(order);
+                server.dctIdToOrder[orderID] = order;
+
+                // add order to strategy orders
+                strategy.DctStrategyOrders[orderID] = order;
+                if (leg != null)
+                    strategy.DctLegToOrder[(int)leg] = order;
+
+                // cleanup
                 order.updateGUI();
             }
             catch (Exception ex)
@@ -315,98 +159,22 @@ namespace CCTriArb
             }
         }
 
-        public override async void cancelAll()
+        public override async void cancel(string orderID)
         {
             try
             {
-                Uri baseAddress;
-                switch (server.serverType)
+                if (server.dctIdToOrder.ContainsKey(orderID) )
                 {
-                    case ServerType.Debugging:
-                        baseAddress = new Uri("https://private-f6a2b2-kucoinapidocs.apiary-proxy.com");
-                        break;
-
-                    case ServerType.Mock:
-                        baseAddress = new Uri("https://private-f6a2b2-kucoinapidocs.apiary-mock.com");
-                        break;
-
-                    default:
-                        baseAddress = new Uri("https://api.kucoin.com");
-                        break;
-                }
-
-                String API_KEY = Properties.Settings.Default.KUCOIN_API_KEY;
-                String API_SECRET = Properties.Settings.Default.KUCOIN_API_SECRET;
-                String endpoint = "/v1/order/cancel-all";  // API endpoint
-
-                HttpClient httpClient = new HttpClient();
-
-                foreach (CProduct product in server.dctServerProducts.Values)
-                {
-                    Dictionary<string, string> parameters = new Dictionary<string, string> {
-                        { "symbol", product.Symbol }
-                    };
-                    HttpContent queryString = new FormUrlEncodedContent(parameters);
-                    String strQuery = "";
-                    foreach (String param in parameters.Keys)
+                    COrder order = server.dctIdToOrder[orderID];
+                    if (!order.Status.Equals("Cancelled"))
                     {
-                        if (strQuery.Length > 0)
-                            strQuery += "&";
-                        strQuery += (param + "=" + parameters[param]);
+                        await api.CancelOrderAsync(orderID);
+                        System.Threading.Thread.Sleep(100);
+                        order.Strategy.State = CStrategy.StrategyState.Inactive;
+                        order.Status = "Cancelled";
+                        order.TimeStampLastUpdate = DateTime.Now;
+                        order.updateGUI();
                     }
-
-                    //splice string for signing
-                    String nonce = CHelper.ConvertToUnixTimestamp().ToString();
-
-                    String ApiForSign = endpoint + "/" + nonce + "/" + strQuery;
-                    String Base64ForSign = CHelper.Base64Encode(ApiForSign);
-
-                    UTF8Encoding encoding = new System.Text.UTF8Encoding();
-                    byte[] keyByte = encoding.GetBytes(API_SECRET);
-                    byte[] messageBytes = encoding.GetBytes(Base64ForSign);
-                    HMACSHA256 hmacsha256 = new HMACSHA256(keyByte);
-                    byte[] hashmessage = hmacsha256.ComputeHash(messageBytes);
-
-                    byte[] ba = hashmessage;
-                    StringBuilder hex = new StringBuilder(ba.Length * 2);
-                    foreach (byte b in ba)
-                        hex.AppendFormat("{0:x2}", b);
-
-                    String signatureResult = hex.ToString();
-
-                    // Create a client
-                    httpClient = new HttpClient();
-
-                    // Add a new Request Message
-                    HttpRequestMessage requestMessage = new HttpRequestMessage(HttpMethod.Post, baseAddress + endpoint + "?" + strQuery);
-
-                    // Add our custom headers
-                    requestMessage.Headers.Add("KC-API-SIGNATURE", signatureResult);
-                    requestMessage.Headers.Add("KC-API-KEY", API_KEY);
-                    requestMessage.Headers.Add("KC-API-NONCE", nonce);
-
-                    // Send the request to the server
-                    HttpResponseMessage response = await httpClient.SendAsync(requestMessage);
-
-                    string json = await response.Content.ReadAsStringAsync();
-
-                    // parse order String
-                    dynamic cancelorderData = JsonConvert.DeserializeObject(json);
-                    var orders = cancelorderData.data;
-
-                    foreach (COrder order in server.colOrders)
-                    {
-                        if (order.Product.Equals(product))
-                        {
-                            if (!order.Status.Equals("Cancelled"))
-                            {
-                                order.Status = "Cancelled";
-                                order.TimeStampLastUpdate = DateTime.Now;
-                                order.updateGUI();
-                            }
-                        }
-                    }
-                    server.AddLog(json);
                 }
             }
             catch (Exception ex)
@@ -415,9 +183,23 @@ namespace CCTriArb
             }
         }
 
-        public override void pollPositions(object source, ElapsedEventArgs e)
+        public override void cancelAll()
         {
-            return;
+            try
+            {
+                foreach (COrder order in server.colServerOrders)
+                {
+                    if (order.Exchange == this && (!order.Status.Equals("Cancelled")))
+                    {
+                        cancel(order.OrderID);
+                    }
+                }
+
+            }
+            catch (Exception ex)
+            {
+                server.AddLog(ex.Message);
+            }
         }
     }
 }

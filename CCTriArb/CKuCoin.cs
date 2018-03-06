@@ -14,6 +14,10 @@ namespace CCTriArb
 {
     public class CKuCoin : CExchange
     {
+
+        static object _pollTicksLock = new object();
+        static object _pollOrdersLock = new object();
+
         public CKuCoin() : base()
         {
             BaseURL = "https://api.kucoin.com/v1/open/tick";
@@ -95,6 +99,46 @@ namespace CCTriArb
             return null;
         }
 
+        public override void pollTicks(object source, ElapsedEventArgs e)
+        {
+
+            lock (_pollTicksLock)
+            {
+                var wc = new WebClient();
+                wc.Headers.Add("user-agent", USER_AGENT);
+                TaskCompletionSource<string> tcs = new TaskCompletionSource<string>();
+                foreach (CProduct product in dctExchangeProducts.Values)
+                {
+                    try
+                    {
+                        String tickURL = BaseURL + "?symbol=" + product.Symbol;
+                        var json = wc.DownloadString(tickURL);
+                        dynamic tickData = JsonConvert.DeserializeObject(json);
+                        product.Bid = tickData.data.buy;
+                        product.Ask = tickData.data.sell;
+                        Decimal last;
+                        Decimal.TryParse(tickData.data.lastDealPrice.ToString(), out last);
+                        product.SetLast(last);
+                        product.Volume = tickData.data.volValue;
+
+                        long numTicks = tickData.data.datetime;
+                        var posixTime = DateTime.SpecifyKind(new DateTime(1970, 1, 1), DateTimeKind.Utc);
+                        var time = posixTime.AddMilliseconds(numTicks);
+                        product.TimeStampLastTick = time;
+
+                        foreach (CStrategy strategy in product.colStrategy)
+                        {
+                            strategy.updateGUI();
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        server.AddLog(ex.Message);
+                    }
+                }
+            }
+        }
+
         public override async void pollOrders(object source, ElapsedEventArgs e)
         {
             if (pollingOrders)
@@ -105,7 +149,7 @@ namespace CCTriArb
             try
             {
                 HttpClient httpClient = new HttpClient();
-                foreach (CProduct product in dctProducts.Values)
+                foreach (CProduct product in dctExchangeProducts.Values)
                 {
                     for (int active_dealt = 0; active_dealt < 2; active_dealt++)
                     {
@@ -288,9 +332,9 @@ namespace CCTriArb
                             if (coinType.ToString().Contains("USD"))
                                 server.AddLog("Found " + coinType + "!");
                             String symbol = (coinType.ToString().Equals("USDT")) ? coinType : coinType + "-USDT";
-                            if (dctProducts.ContainsKey(symbol))
+                            if (dctExchangeProducts.ContainsKey(symbol))
                             {
-                                CProduct product = dctProducts[symbol];
+                                CProduct product = dctExchangeProducts[symbol];
                                 product.TimeStampLastBalance = DateTime.Now;
                                 Double dbal = 0;
                                 Double.TryParse(balance.ToString(), out dbal);
@@ -306,47 +350,6 @@ namespace CCTriArb
                 server.AddLog(ex.Message);
             }
             pollingPositions = false;
-        }
-
-        public override void pollTicks(object source, ElapsedEventArgs e)
-        {
-            if (pollingTicks)
-                return;
-            else
-                pollingTicks = true;
-            var wc = new WebClient();
-            wc.Headers.Add("user-agent", USER_AGENT);
-            TaskCompletionSource<string> tcs = new TaskCompletionSource<string>();
-            foreach (CProduct product in dctProducts.Values)
-            {
-                try
-                {
-                    String tickURL = BaseURL + "?symbol=" + product.Symbol;
-                    var json = wc.DownloadString(tickURL);
-                    dynamic tickData = JsonConvert.DeserializeObject(json);
-                    product.Bid = tickData.data.buy;
-                    product.Ask = tickData.data.sell;
-                    Decimal last;
-                    Decimal.TryParse(tickData.data.lastDealPrice.ToString(), out last);
-                    product.SetLast(last);
-                    product.Volume = tickData.data.volValue;
-
-                    long numTicks = tickData.data.datetime;
-                    var posixTime = DateTime.SpecifyKind(new DateTime(1970, 1, 1), DateTimeKind.Utc);
-                    var time = posixTime.AddMilliseconds(numTicks);
-                    product.TimeStampLastTick = time;
-
-                    foreach (CStrategy strategy in product.colStrategy)
-                    {
-                        strategy.updateGUI();
-                    }
-                }
-                catch (Exception ex)
-                {
-                    server.AddLog(ex.Message);
-                }
-            }
-            pollingTicks = false;
         }
 
         public override async void trade(CStrategy strategy, int? leg, OrderSide? side, CProduct product, Double size, Double price)
@@ -404,11 +407,11 @@ namespace CCTriArb
                     server.AddLog("Created Order " + this.Name + " " + orderID + " " + product + " " + side + " " + size + " " + price);
 
                     // add order to global Orders
-                    server.colOrders.Add(order);
+                    server.colServerOrders.Add(order);
                     server.dctIdToOrder[orderID] = order;
 
                     // add order to strategy orders
-                    strategy.DctOrders[orderID] = order;
+                    strategy.DctStrategyOrders[orderID] = order;
                     if (leg != null)
                         strategy.DctLegToOrder[(int)leg] = order;
 
@@ -486,7 +489,7 @@ namespace CCTriArb
                         dynamic cancelorderData = JsonConvert.DeserializeObject(json);
                         var orders = cancelorderData.data;
 
-                        foreach (COrder order in server.colOrders)
+                        foreach (COrder order in server.colServerOrders)
                         {
                             if (order.Product.Equals(product))
                             {
