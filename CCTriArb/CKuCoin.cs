@@ -111,24 +111,27 @@ namespace CCTriArb
                 {
                     try
                     {
-                        String tickURL = BaseURL + "?symbol=" + product.Symbol;
-                        var json = wc.DownloadString(tickURL);
-                        dynamic tickData = JsonConvert.DeserializeObject(json);
-                        product.Bid = tickData.data.buy;
-                        product.Ask = tickData.data.sell;
-                        Decimal last;
-                        Decimal.TryParse(tickData.data.lastDealPrice.ToString(), out last);
-                        product.SetLast(last);
-                        product.Volume = tickData.data.volValue;
-
-                        long numTicks = tickData.data.datetime;
-                        var posixTime = DateTime.SpecifyKind(new DateTime(1970, 1, 1), DateTimeKind.Utc);
-                        var time = posixTime.AddMilliseconds(numTicks);
-                        product.TimeStampLastTick = time;
-
-                        foreach (CStrategy strategy in product.colStrategy)
+                        if (product.Symbol.Length > 4)
                         {
-                            strategy.updateGUI();
+                            String tickURL = BaseURL + "?symbol=" + product.Symbol;
+                            var json = wc.DownloadString(tickURL);
+                            dynamic tickData = JsonConvert.DeserializeObject(json);
+                            product.Bid = tickData.data.buy;
+                            product.Ask = tickData.data.sell;
+                            Decimal last;
+                            Decimal.TryParse(tickData.data.lastDealPrice.ToString(), out last);
+                            product.SetLast(last);
+                            product.Volume = tickData.data.volValue;
+
+                            long numTicks = tickData.data.datetime;
+                            var posixTime = DateTime.SpecifyKind(new DateTime(1970, 1, 1), DateTimeKind.Utc);
+                            var time = posixTime.AddMilliseconds(numTicks);
+                            product.TimeStampLastTick = time;
+
+                            foreach (CStrategy strategy in product.colStrategy)
+                            {
+                                strategy.updateGUI();
+                            }
                         }
                     }
                     catch (Exception ex)

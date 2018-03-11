@@ -39,18 +39,21 @@ namespace CCTriArb
                 {
                     try
                     {
-                        ExchangeTicker ticker = api.GetTicker(product.Symbol);
-                        product.Bid = ticker.Bid;
-                        product.Ask = ticker.Ask;
-                        product.Last = ticker.Last;
-                        Decimal last;
-                        Decimal.TryParse(ticker.Last.ToString(), out last);
-                        product.SetLast(last);
-                        product.Volume = ticker.Volume.QuantityAmount;
-                        product.TimeStampLastTick = ticker.Volume.Timestamp;
-                        foreach (CStrategy strategy in product.colStrategy)
+                        if (product.Symbol.Length > 4)
                         {
-                            strategy.updateGUI();
+                            ExchangeTicker ticker = api.GetTicker(product.Symbol);
+                            product.Bid = ticker.Bid;
+                            product.Ask = ticker.Ask;
+                            product.Last = ticker.Last;
+                            Decimal last;
+                            Decimal.TryParse(ticker.Last.ToString(), out last);
+                            product.SetLast(last);
+                            product.Volume = ticker.Volume.QuantityAmount;
+                            product.TimeStampLastTick = ticker.Volume.Timestamp;
+                            foreach (CStrategy strategy in product.colStrategy)
+                            {
+                                strategy.updateGUI();
+                            }
                         }
                     }
                     catch (Exception ex)
