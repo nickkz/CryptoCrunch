@@ -19,6 +19,7 @@ namespace CCTriArb
         public Decimal? Volume { get; set; }
         public DateTime? TimeStampLastTick { get; set; }
         public DateTime? TimeStampLastBalance { get; set; }
+        public Double? MinSize { get; set; }
         public int PrecisionSize { get; set; }
         public int PrecisionPrice { get; set; }
         public MTObservableCollection<CStrategy> colStrategy;
@@ -70,6 +71,11 @@ namespace CCTriArb
             get; private set;
         }
 
+        public int SignPnL
+        {
+            get { return Math.Sign(TotalPnL); }
+        }
+
 
         public CProduct(CExchange exchange, String symbol, int precisionSize, int precisionPrice)
         {
@@ -81,6 +87,8 @@ namespace CCTriArb
             TradingPnL = 0;
             if (Symbol.Equals("USDT"))
                 SetLast(1);
+            if (Symbol.Contains("LTC") && Symbol.Contains("BTC"))
+                MinSize = 0.01;
         }
 
         protected virtual void OnPropertyChanged(string propertyName)
@@ -109,6 +117,7 @@ namespace CCTriArb
             this.OnPropertyChanged("CurrentUSD");
             this.OnPropertyChanged("TotalPnL");
             this.OnPropertyChanged("TradingPnL");
+            this.OnPropertyChanged("SignPnL");
         }
 
         public override String ToString()

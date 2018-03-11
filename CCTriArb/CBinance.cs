@@ -69,8 +69,70 @@ namespace CCTriArb
                 pollingOrders = true;
             try
             {
-                IEnumerable<ExchangeOrderResult> resultOpenOrders = await api.GetOpenOrderDetailsAsync();
-                IEnumerable<ExchangeOrderResult> resultCompletedOrders = await api.GetCompletedOrderDetailsAsync();
+                for (bool open_completed = false; open_completed; open_completed = !open_completed)
+                {
+                    IEnumerable<ExchangeOrderResult> resultOrders;
+                    if (open_completed)
+                        resultOrders = await api.GetCompletedOrderDetailsAsync();
+                    else
+                        resultOrders = await api.GetOpenOrderDetailsAsync();
+
+                    foreach (ExchangeOrderResult orderOpen in resultOrders)
+                    {
+                        String orderID = orderOpen.OrderId;
+                        Decimal amount = orderOpen.Amount;
+                        Decimal amountFilled = orderOpen.AmountFilled;
+                        Decimal averagePrice = orderOpen.AveragePrice;
+                        Boolean isBuy = orderOpen.IsBuy;
+                        DateTime orderDate = orderOpen.OrderDate;
+                        ExchangeAPIOrderResult result = orderOpen.Result;
+                        String symbol = orderOpen.Symbol;
+                        COrder order = null;
+                        if (server.dctIdToOrder.ContainsKey(orderID))
+                            order = server.dctIdToOrder[orderID];
+
+                        if (order != null)
+                        {
+                            order.OrderID = orderID;
+                            order.DealPrice = (Double)averagePrice;
+                            //order.Fee = fee;
+                            //order.FeeRate = feeRate;
+                            order.Size = (double)amount;
+                            order.Filled = (Double)amountFilled;
+                            switch(result)
+                            {
+                                case ExchangeAPIOrderResult.Canceled:
+                                    order.Status = COrder.OrderState.Cancelled;
+                                    break;
+
+                                case ExchangeAPIOrderResult.Error:
+                                    order.Status = COrder.OrderState.Error;
+                                    break;
+
+                                case ExchangeAPIOrderResult.Filled:
+                                    order.Status = COrder.OrderState.Filled;
+                                    break;
+
+                                case ExchangeAPIOrderResult.FilledPartially:
+                                    order.Status = COrder.OrderState.Partial;
+                                    break;
+
+                                case ExchangeAPIOrderResult.Pending:
+                                    order.Status = COrder.OrderState.Queued;
+                                    break;
+
+                                case ExchangeAPIOrderResult.Unknown:
+                                    order.Status = COrder.OrderState.Unknown;
+                                    break;
+                            }
+                            order.TimeStampFilled = orderDate;
+                            order.updateGUI();
+                        }
+                    }
+                }
+
+
+
             }
             catch (Exception ex)
             {
@@ -131,9 +193,9 @@ namespace CCTriArb
                 order.Price = price;
                 String orderStatus = result.Result.ToString();
                 if (orderStatus.Equals("OK") || orderStatus.Equals("Sent"))
-                    order.Status = "Sent";
+                    order.Status = COrder.OrderState.Sent;
                 else
-                    order.Status = result.Result.ToString();
+                    order.Status = COrder.OrderState.Unknown;
 
                 order.Strategy = strategy;
                 order.Exchange = this;
@@ -166,12 +228,12 @@ namespace CCTriArb
                 if (server.dctIdToOrder.ContainsKey(orderID) )
                 {
                     COrder order = server.dctIdToOrder[orderID];
-                    if (!order.Status.Equals("Cancelled"))
+                    if (!order.Status.Equals(COrder.OrderState.Cancelled))
                     {
                         await api.CancelOrderAsync(orderID);
                         System.Threading.Thread.Sleep(100);
                         order.Strategy.State = CStrategy.StrategyState.Inactive;
-                        order.Status = "Cancelled";
+                        order.Status = COrder.OrderState.Cancelled;
                         order.TimeStampLastUpdate = DateTime.Now;
                         order.updateGUI();
                     }
@@ -189,9 +251,16 @@ namespace CCTriArb
             {
                 foreach (COrder order in server.colServerOrders)
                 {
-                    if (order.Exchange == this && (!order.Status.Equals("Cancelled")))
+                    if (order.Exchange == this && (!order.Status.Equals(COrder.OrderState.Cancelled)))
                     {
                         cancel(order.OrderID);
+                        if (!order.Status.Equals(COrder.OrderState.Cancelled))
+                        {
+                            order.Status = COrder.OrderState.Cancelled;
+                            order.TimeStampLastUpdate = DateTime.Now;
+                            order.Strategy.State = CStrategy.StrategyState.Inactive;
+                            order.updateGUI();
+                        }
                     }
                 }
 

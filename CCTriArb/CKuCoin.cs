@@ -216,7 +216,7 @@ namespace CCTriArb
                                         order.FeeRate = feeRate;
                                         order.DealValue = dealValue;
                                         order.Filled = amount;
-                                        order.Status = "Filled";
+                                        order.Status = COrder.OrderState.Filled;
                                         order.TimeStampFilled = DateTime.Now;
                                         order.updateGUI();
                                     }
@@ -262,9 +262,9 @@ namespace CCTriArb
                                                     order.Filled = filled;
                                                     order.TimeStampFilled = DateTime.Now;
                                                     if (order.Filled < order.Size)
-                                                        order.Status = "Partial";
+                                                        order.Status = COrder.OrderState.Partial;
                                                 }
-                                                order.Status = "Queued";
+                                                order.Status = COrder.OrderState.Queued;
                                                 order.TimeStampSent = CHelper.ConvertFromUnixTimestamp(timeStamp);
                                                 order.TimeStampLastUpdate = DateTime.Now;
                                                 order.updateGUI();
@@ -329,6 +329,7 @@ namespace CCTriArb
                         {
                             var coinType = pos.coinType;
                             var balance = pos.balance;
+                            var freezeBalance = pos.freezeBalance;
                             if (coinType.ToString().Contains("USD"))
                                 server.AddLog("Found " + coinType + "!");
                             String symbol = (coinType.ToString().Equals("USDT")) ? coinType : coinType + "-USDT";
@@ -338,7 +339,11 @@ namespace CCTriArb
                                 product.TimeStampLastBalance = DateTime.Now;
                                 Double dbal = 0;
                                 Double.TryParse(balance.ToString(), out dbal);
-                                product.SetBalance(dbal);
+                                Double dfreezeBal = 0;
+                                Double.TryParse(freezeBalance.ToString(), out dfreezeBal);
+                                if (product.CurrentBalance.HasValue && dbal != product.CurrentBalance.GetValueOrDefault())
+                                    server.AddLog("Balance Changed!");
+                                product.SetBalance(dbal + dfreezeBal);
                                 product.updateGUI();
                             }
                         }
@@ -395,9 +400,9 @@ namespace CCTriArb
                     order.Price = price;
                     String orderStatus = orderData.msg.ToString();
                     if (orderStatus.Equals("OK") || orderStatus.Equals("Sent"))
-                        order.Status = "Sent";
+                        order.Status = COrder.OrderState.Sent;
                     else
-                        order.Status = "Unknown";
+                        order.Status = COrder.OrderState.Unknown;
 
                     order.Strategy = strategy;
                     order.Exchange = this;
@@ -451,8 +456,8 @@ namespace CCTriArb
                 dynamic cancelorderData = JsonConvert.DeserializeObject(json);
                 var orders = cancelorderData.data;
 
-                order.Strategy.State = CStrategy.StrategyState.Inactive;
-                order.Status = "Cancelled";
+                //order.Strategy.State = CStrategy.StrategyState.Inactive;
+                order.Status = COrder.OrderState.Cancelled;
                 order.TimeStampLastUpdate = DateTime.Now;
                 order.updateGUI();
                 server.AddLog(json);
@@ -493,10 +498,11 @@ namespace CCTriArb
                         {
                             if (order.Product.Equals(product))
                             {
-                                if (!order.Status.Equals("Cancelled"))
+                                if (!order.Status.Equals(COrder.OrderState.Cancelled))
                                 {
-                                    order.Status = "Cancelled";
+                                    order.Status = COrder.OrderState.Cancelled;
                                     order.TimeStampLastUpdate = DateTime.Now;
+                                    order.Strategy.State = CStrategy.StrategyState.Inactive;
                                     order.updateGUI();
                                 }
                             }

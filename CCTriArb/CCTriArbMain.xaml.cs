@@ -86,14 +86,6 @@ namespace CCTriArb
             }
         }
 
-        private void btnCancelAll_Click(object sender, RoutedEventArgs e)
-        {
-            foreach (CExchange exchange in server.dctExchanges.Values)
-            {
-                exchange.cancelAll();
-            }
-        }
-
         private void btnTradeSingle_Click(object sender, RoutedEventArgs e)
         {
 
@@ -129,12 +121,21 @@ namespace CCTriArb
             }
         }
 
+        private void btnCancelAll_Click(object sender, RoutedEventArgs e)
+        {
+            foreach (CExchange exchange in server.dctExchanges.Values)
+            {
+                exchange.cancelAll();
+            }
+        }
+
         private void btnCancel_Click(object sender, RoutedEventArgs e)
         {
             foreach (COrder order in dgOrders.SelectedItems)
             {
                 AddLog(order + " Cancelling!");
                 order.cancel();
+                order.Strategy.State = CStrategy.StrategyState.Inactive;
             }
         }
     }

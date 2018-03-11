@@ -22,6 +22,33 @@
                 <DataGridTextColumn Header="Leg 3 Ask" Width="60" Binding="{Binding Leg3Ask,StringFormat=N3,Mode=OneWay}" />
                 <DataGridTextColumn Header="Profit TMT" Width="70" Binding="{Binding Profit,StringFormat=N4,Mode=OneWay}" />
             </DataGrid.Columns>
+            <DataGrid.RowStyle>
+                <Style TargetType="DataGridRow">
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding State}" Value="Inactive">
+                            <Setter Property="Background" Value="LightGoldenrodYellow"></Setter>
+                        </DataTrigger>
+                        <DataTrigger Binding="{Binding State}" Value="Active">
+                            <Setter Property="Background" Value="LightGreen"></Setter>
+                        </DataTrigger>
+                        <DataTrigger Binding="{Binding State}" Value="Continuous">
+                            <Setter Property="Background" Value="Green"></Setter>
+                        </DataTrigger>
+                        <DataTrigger Binding="{Binding State}" Value="MakerSend">
+                            <Setter Property="Background" Value="LightSteelBlue"></Setter>
+                        </DataTrigger>
+                        <DataTrigger Binding="{Binding State}" Value="MakerProcess">
+                            <Setter Property="Background" Value="LightSteelBlue"></Setter>
+                        </DataTrigger>
+                        <DataTrigger Binding="{Binding State}" Value="TakerSend">
+                            <Setter Property="Background" Value="LightBlue"></Setter>
+                        </DataTrigger>
+                        <DataTrigger Binding="{Binding State}" Value="TakerProcess">
+                            <Setter Property="Background" Value="LightBlue"></Setter>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </DataGrid.RowStyle>
         </DataGrid>
         <Label Content="Strategies" HorizontalAlignment="Left" Margin="20,4,0,0" VerticalAlignment="Top"/>
         <DataGrid AutoGenerateColumns="False" HorizontalAlignment="Left" Name="dgOrders" Height="167" Margin="20,259,0,0" VerticalAlignment="Top" Width="1020" CanUserResizeColumns="True" CanUserAddRows="False" ItemsSource="{Binding}">
@@ -39,7 +66,27 @@
                 <DataGridTextColumn Header="Sent" Width="130" Binding="{Binding TimeStampSent,Mode=OneWay}" />
                 <DataGridTextColumn Header="Last Update" Width="130" Binding="{Binding TimeStampLastUpdate,Mode=OneWay}" />
                 <DataGridTextColumn Header="Filled" Width="130" Binding="{Binding TimeStampFilled,Mode=OneWay}" />
+                <DataGridTextColumn Header="Fee" Width="70" Binding="{Binding Fee,Mode=OneWay}" />
+                <DataGridTextColumn Header="FeeRate" Width="70" Binding="{Binding FeeRate,Mode=OneWay}" />
             </DataGrid.Columns>
+            <DataGrid.RowStyle>
+                <Style TargetType="DataGridRow">
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding Status}" Value="Sent">
+                            <Setter Property="Background" Value="LightGoldenrodYellow"></Setter>
+                        </DataTrigger>
+                        <DataTrigger Binding="{Binding Status}" Value="Queued">
+                            <Setter Property="Background" Value="LightSteelBlue"></Setter>
+                        </DataTrigger>
+                        <DataTrigger Binding="{Binding Status}" Value="Filled">
+                            <Setter Property="Background" Value="LightGreen"></Setter>
+                        </DataTrigger>
+                        <DataTrigger Binding="{Binding Status}" Value="Cancelled">
+                            <Setter Property="Background" Value="LightPink"></Setter>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </DataGrid.RowStyle>            
         </DataGrid>
         <Label Content="Orders" HorizontalAlignment="Left" Margin="20,235,0,0" VerticalAlignment="Top"/>
         <ComboBox x:Name="cboServer" HorizontalAlignment="Left" Margin="1195,33,0,0" VerticalAlignment="Top" Width="108" Height="22" SelectedIndex="0" SelectionChanged="cboServer_SelectionChanged">
@@ -73,9 +120,25 @@
                 <DataGridTextColumn Header="Current USD" Width="70" Binding="{Binding CurrentUSD, Mode=OneWay}" />
                 <DataGridTextColumn Header="Trading PnL" Width="100" Binding="{Binding TradingPnL, Mode=OneWay, StringFormat=N3}" />
                 <DataGridTextColumn Header="Total PnL" Width="100" Binding="{Binding TotalPnL, Mode=OneWay, StringFormat=N3}" />
+                <DataGridTextColumn Header="Sign PnL" Width="10" Binding="{Binding SignPnL, Mode=OneWay}" />
                 <DataGridTextColumn Header="Last Tick" Width="130" Binding="{Binding TimeStampLastTick,Mode=OneWay}" />
                 <DataGridTextColumn Header="Last Pos" Width="130" Binding="{Binding TimeStampLastBalance,Mode=OneWay}" />
             </DataGrid.Columns>
+            <DataGrid.RowStyle>
+                <Style TargetType="DataGridRow">
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding SignPnL}" Value="-1">
+                            <Setter Property="Background" Value="LightSalmon"></Setter>
+                        </DataTrigger>
+                        <DataTrigger Binding="{Binding SignPnL}" Value="0">
+                            <Setter Property="Background" Value="LightGoldenrodYellow"></Setter>
+                        </DataTrigger>
+                        <DataTrigger Binding="{Binding SignPnL}" Value="1">
+                            <Setter Property="Background" Value="LightGreen"></Setter>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </DataGrid.RowStyle>
         </DataGrid>
         <Label Content="Positions" HorizontalAlignment="Left" Margin="20,436,0,0" VerticalAlignment="Top"/>
 

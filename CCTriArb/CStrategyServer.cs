@@ -161,9 +161,25 @@ namespace CCTriArb
 
         private void pollOrders(object source, ElapsedEventArgs e)
         {
-            foreach (var exchange in dctExchanges.Values)
+            foreach (CExchange exchange in dctExchanges.Values)
             {
                 exchange.pollOrders(source, e);
+            }
+
+            Collection<COrder> colTimedOutOrders = new Collection<COrder>();
+            foreach (COrder order in colServerOrders)
+            {
+                DateTime? dtLastUpdateorder = order.TimeStampLastUpdate;
+                if (dtLastUpdateorder.HasValue && order.Status.Equals(COrder.OrderState.Cancelled))
+                {
+                    var diffInSeconds = (DateTime.Now - dtLastUpdateorder.GetValueOrDefault()).TotalSeconds;
+                    if (diffInSeconds > 30)
+                        colTimedOutOrders.Add(order);
+                }
+            }
+            foreach (COrder order in colTimedOutOrders)
+            {
+                colServerOrders.Remove(order);
             }
         }
 

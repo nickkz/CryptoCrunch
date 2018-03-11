@@ -9,6 +9,17 @@ namespace CCTriArb
 {
     public class COrder : INotifyPropertyChanged
     {
+        public enum OrderState
+        {
+            Sent,
+            Queued,
+            Filled,
+            Partial,
+            Cancelled,
+            Error,
+            Unknown
+        }
+
         public String OrderID { get; set; }
         public String OID { get; set; }
         public Double Fee { get; set; }
@@ -21,7 +32,7 @@ namespace CCTriArb
 
         public Double Size { get; set; }
         public Double Filled { get; set; }
-        public String Status { get; set; }
+        public OrderState Status { get; set; }
         public Double DealValue { get; set; }
 
         public CStrategy Strategy { get; set; }
@@ -68,7 +79,5 @@ namespace CCTriArb
         {
             this.Exchange.cancel(this.OrderID);
         }
-           
-
     }
 }

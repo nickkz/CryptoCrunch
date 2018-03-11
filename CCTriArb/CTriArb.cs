@@ -160,6 +160,8 @@ namespace CCTriArb
                 if (productExchange.Symbol.Equals(productUSD))
                 {
                     size = dUSD / (double)productExchange.Last;
+                    if (product.MinSize.HasValue)
+                        size = Math.Max(size, product.MinSize.GetValueOrDefault());
                 }
             }
             return size;
@@ -203,7 +205,7 @@ namespace CCTriArb
 
                     case StrategyState.MakerProcess:
                         COrder order = DctLegToOrder[MakerLeg];
-                        if (order.Status == "Filled")
+                        if (order.Status.Equals(COrder.OrderState.Filled))
                         {
                             State = StrategyState.TakerSend;
                         }
@@ -239,7 +241,7 @@ namespace CCTriArb
                             if (DctLegToOrder.ContainsKey(currentLeg))
                             {
                                 COrder orderTaker = DctLegToOrder[currentLeg];
-                                if (orderTaker.Status != "Filled")
+                                if (orderTaker.Status != COrder.OrderState.Filled)
                                     allFilled = false;
                             }
                             else

@@ -70,7 +70,7 @@ Exchanges:
     leg2side           : Buy
     leg3symbol         : ETHUSDT
     leg3side           : Sell
-    makerleg           : 2
+    makerleg           : 1
   - name               : 
     leg1symbol         : ETHUSDT
     leg1side           : Buy
@@ -78,4 +78,4 @@ Exchanges:
     leg2side           : Sell
     leg3symbol         : BTCUSDT
     leg3side           : Sell
-    makerleg           : 2
+    makerleg           : 1
