@@ -47,11 +47,13 @@ namespace CCTriArb
             IsActive = true;
             TradeUSD = 1.0;
             MinProfit = 0.002;
-            CExchange kuExchange = new CKuCoin();
-            CExchange beExchange = new CBinance();
             dctExchanges = new Dictionary<String, CExchange>();
+            CExchange kuExchange = new CKuCoin();
             dctExchanges.Add(kuExchange.Name, kuExchange);
+            CExchange beExchange = new CBinance();
             dctExchanges.Add(beExchange.Name, beExchange);
+            CExchange gdaxExchange = new CGDAX();
+            dctExchanges.Add(gdaxExchange.Name, gdaxExchange);
             colServerProducts = new MTObservableCollection<CProduct>();
             dctServerProducts = new Dictionary<String, CProduct>();
             colStrategies = new MTObservableCollection<CTriArb>();

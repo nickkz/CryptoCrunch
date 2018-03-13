@@ -79,3 +79,30 @@ Exchanges:
     leg3symbol         : BTCUSDT
     leg3side           : Sell
     makerleg           : 1
+    
+- Exchange: GDAX
+  Products:
+  - symbol             : USDT
+    precisionSize      : 6
+    precisionPrice     : 8
+  - symbol             : BTC-USD
+    precisionSize      : 6
+    precisionPrice     : 8
+  - symbol             : ETH-BTC
+    precisionSize      : 3
+    precisionPrice     : 6
+  - symbol             : ETH-USD
+    precisionSize      : 4
+    precisionPrice     : 6
+  - symbol             : LTC-USD
+    precisionSize      : 4
+    precisionPrice     : 6
+  Strategies:
+  - name               : 
+    leg1symbol         : BTC-USD
+    leg1side           : Buy
+    leg2symbol         : ETH-BTC
+    leg2side           : Buy
+    leg3symbol         : ETH-USD
+    leg3side           : Sell
+    makerleg           : 1

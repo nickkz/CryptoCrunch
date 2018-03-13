@@ -208,8 +208,9 @@ namespace CCTriArb
                         if (order.Status.Equals(COrder.OrderState.Filled))
                         {
                             State = StrategyState.TakerSend;
+                            goto case StrategyState.TakerSend;
                         }
-                        else if (Profit < profitUSD)
+                        else if (Profit < profitUSD && order.canCancel())
                         {
                             order.cancel();
                             State = Continuous ? StrategyState.Continuous : StrategyState.Active;
@@ -241,8 +242,18 @@ namespace CCTriArb
                             if (DctLegToOrder.ContainsKey(currentLeg))
                             {
                                 COrder orderTaker = DctLegToOrder[currentLeg];
-                                if (orderTaker.Status != COrder.OrderState.Filled)
+                                if (orderTaker.Status == COrder.OrderState.Queued)
+                                {
                                     allFilled = false;
+                                    CExchange exchange = orderTaker.Exchange;
+                                    OrderSide sideTaker = orderTaker.Side;
+                                    CProduct productTaker = orderTaker.Product;
+                                    Double sizeTaker = orderTaker.Size;
+                                    Double priceTaker = ((Double)productTaker.Bid + (Double)productTaker.Ask) / 2.0;
+                                    CurrentLeg = currentLeg;
+                                    orderTaker.cancel();
+                                    exchange.trade(this, currentLeg, sideTaker, productTaker, Math.Round(sizeTaker, productTaker.PrecisionSize), Math.Round(priceTaker, productTaker.PrecisionPrice));
+                                }
                             }
                             else
                                 allFilled = false;

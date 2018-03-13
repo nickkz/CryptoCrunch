@@ -75,6 +75,15 @@ namespace CCTriArb
             this.OnPropertyChanged("FeeRate");
         }
 
+        public Boolean canCancel()
+        {
+            return (
+                Status.Equals(OrderState.Queued) || 
+                Status.Equals(OrderState.Partial) || 
+                Status.Equals(OrderState.Unknown)
+            );
+        }
+
         public void cancel()
         {
             this.Exchange.cancel(this.OrderID);

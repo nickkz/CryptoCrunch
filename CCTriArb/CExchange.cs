@@ -16,6 +16,8 @@ namespace CCTriArb
         protected static String USER_AGENT = @"Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.2; .NET CLR 1.0.3705;)";
         protected String API_KEY, API_SECRET, API_TIMESTAMP, API_PASSPHRASE;
         protected Boolean pollingTicks, pollingOrders, pollingPositions;
+        protected object _pollTicksLock = new object();
+        protected object _pollOrdersLock = new object();
         #endregion
 
         #region Properties
@@ -48,6 +50,7 @@ namespace CCTriArb
         public abstract void trade(CStrategy strategy, int? leg, OrderSide? side, CProduct product, Double size, Double price);
         public abstract void cancel(String orderID);
         public abstract void cancelAll();
+        public abstract String exchangeUSD(String coinType);
 
         public override string ToString()
         {

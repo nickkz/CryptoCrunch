@@ -155,6 +155,8 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="CBinance.cs" />
+    <Compile Include="CESExchange.cs" />
+    <Compile Include="CGDAX.cs" />
     <Compile Include="CHelper.cs" />
     <Compile Include="MTObservableCollection.cs" />
     <Compile Include="ServerType.cs" />

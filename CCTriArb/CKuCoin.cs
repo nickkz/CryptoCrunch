@@ -14,21 +14,21 @@ namespace CCTriArb
 {
     public class CKuCoin : CExchange
     {
-
-        static object _pollTicksLock = new object();
-        static object _pollOrdersLock = new object();
-
         public CKuCoin() : base()
         {
-            BaseURL = "https://api.kucoin.com/v1/open/tick";
             Name = "KuCoin";
+            API_KEY = Properties.Settings.Default.KUCOIN_API_KEY;
+            API_SECRET = Properties.Settings.Default.KUCOIN_API_SECRET;
+            BaseURL = "https://api.kucoin.com/v1/open/tick";
             getAccounts();
         }
 
-        public override void getAccounts()
+        public override String exchangeUSD(String coinType)
         {
-            //throw new NotImplementedException();
+            return (coinType.Equals("USDT")) ? coinType : coinType + "-USDT";
         }
+
+        public override void getAccounts() { }
 
         private HttpRequestMessage KuCoinPrivate(String endpoint, Dictionary<string, string> parameters, HttpMethod method)
         {
@@ -50,8 +50,6 @@ namespace CCTriArb
                         break;
                 }
 
-                String API_KEY = Properties.Settings.Default.KUCOIN_API_KEY;
-                String API_SECRET = Properties.Settings.Default.KUCOIN_API_SECRET;
                 HttpContent queryString = new FormUrlEncodedContent(parameters);
                 String strQuery = "";
                 foreach (String param in parameters.Keys)
@@ -333,9 +331,7 @@ namespace CCTriArb
                             var coinType = pos.coinType;
                             var balance = pos.balance;
                             var freezeBalance = pos.freezeBalance;
-                            if (coinType.ToString().Contains("USD"))
-                                server.AddLog("Found " + coinType + "!");
-                            String symbol = (coinType.ToString().Equals("USDT")) ? coinType : coinType + "-USDT";
+                            String symbol = exchangeUSD(coinType.ToString());
                             if (dctExchangeProducts.ContainsKey(symbol))
                             {
                                 CProduct product = dctExchangeProducts[symbol];
@@ -458,9 +454,13 @@ namespace CCTriArb
                 // parse order String
                 dynamic cancelorderData = JsonConvert.DeserializeObject(json);
                 var orders = cancelorderData.data;
-
-                //order.Strategy.State = CStrategy.StrategyState.Inactive;
-                order.Status = COrder.OrderState.Cancelled;
+                var success = cancelorderData.success;
+                Boolean bSuccess;
+                Boolean.TryParse(success.ToString(), out bSuccess);
+                if (bSuccess)
+                {
+                    order.Status = COrder.OrderState.Cancelled;
+                }
                 order.TimeStampLastUpdate = DateTime.Now;
                 order.updateGUI();
                 server.AddLog(json);
@@ -477,41 +477,33 @@ namespace CCTriArb
             {
                 String endpoint = "/v1/order/cancel-all";  // API endpoint
                 HttpClient httpClient = new HttpClient();
-                foreach (CProduct product in server.dctServerProducts.Values)
+                var processProducts = server.dctServerProducts.Values.Where(i => i.Exchange.Equals(this));
+                foreach (CProduct product in processProducts)
                 {
-                    if (product.Exchange.Equals(this))
+                    Dictionary<string, string> parameters = new Dictionary<string, string> {
+                        { "symbol", product.Symbol }
+                    };
+
+                    HttpRequestMessage requestMessage = KuCoinPrivate(endpoint, parameters, HttpMethod.Post);
+
+                    // Send the request to the server
+                    HttpResponseMessage response = await httpClient.SendAsync(requestMessage);
+
+                    // get back message
+                    string json = await response.Content.ReadAsStringAsync();
+
+                    // parse order String
+                    dynamic cancelorderData = JsonConvert.DeserializeObject(json);
+                    var orders = cancelorderData.data;
+                    var processOrders = server.colServerOrders.Where(i => i.Product.Equals(product) && i.canCancel());
+                    foreach (COrder order in processOrders)
                     {
-                        Dictionary<string, string> parameters = new Dictionary<string, string> {
-                            { "symbol", product.Symbol }
-                        };
-
-                        HttpRequestMessage requestMessage = KuCoinPrivate(endpoint, parameters, HttpMethod.Post);
-
-                        // Send the request to the server
-                        HttpResponseMessage response = await httpClient.SendAsync(requestMessage);
-
-                        // get back message
-                        string json = await response.Content.ReadAsStringAsync();
-
-                        // parse order String
-                        dynamic cancelorderData = JsonConvert.DeserializeObject(json);
-                        var orders = cancelorderData.data;
-
-                        foreach (COrder order in server.colServerOrders)
-                        {
-                            if (order.Product.Equals(product))
-                            {
-                                if (!order.Status.Equals(COrder.OrderState.Cancelled))
-                                {
-                                    order.Status = COrder.OrderState.Cancelled;
-                                    order.TimeStampLastUpdate = DateTime.Now;
-                                    order.Strategy.State = CStrategy.StrategyState.Inactive;
-                                    order.updateGUI();
-                                }
-                            }
-                        }
-                        server.AddLog(json);
+                        order.Status = COrder.OrderState.Cancelled;
+                        order.TimeStampLastUpdate = DateTime.Now;
+                        order.Strategy.State = CStrategy.StrategyState.Inactive;
+                        order.updateGUI();
                     }
+                    server.AddLog(json);
                 }
             }
             catch (Exception ex)
