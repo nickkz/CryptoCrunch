@@ -242,7 +242,11 @@ namespace CCTriArb
                             if (DctLegToOrder.ContainsKey(currentLeg))
                             {
                                 COrder orderTaker = DctLegToOrder[currentLeg];
-                                if (orderTaker.Status == COrder.OrderState.Queued)
+                                if (orderTaker.Status.Equals(COrder.OrderState.Sent) || orderTaker.Status.Equals(COrder.OrderState.Cancelled))
+                                {
+                                    allFilled = false;
+                                }
+                                else if (orderTaker.canCancel())
                                 {
                                     allFilled = false;
                                     CExchange exchange = orderTaker.Exchange;
@@ -252,6 +256,8 @@ namespace CCTriArb
                                     Double priceTaker = ((Double)productTaker.Bid + (Double)productTaker.Ask) / 2.0;
                                     CurrentLeg = currentLeg;
                                     orderTaker.cancel();
+                                    COrder orderCancel;
+                                    DctLegToOrder.TryRemove(currentLeg, out orderCancel);
                                     exchange.trade(this, currentLeg, sideTaker, productTaker, Math.Round(sizeTaker, productTaker.PrecisionSize), Math.Round(priceTaker, productTaker.PrecisionPrice));
                                 }
                             }
